@@ -1,0 +1,598 @@
+{
+ "chunks": [
+  {
+   "file": "ephem-1800.b64.txt",
+   "from": 1800,
+   "to": 1899,
+   "start": 2378486.5,
+   "series": {
+    "sun": {
+     "offset": 0,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "moon": {
+     "offset": 146180,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mercury": {
+     "offset": 292360,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "venus": {
+     "offset": 438540,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mars": {
+     "offset": 584720,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "jupiter": {
+     "offset": 657812,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "saturn": {
+     "offset": 730904,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "uranus": {
+     "offset": 803996,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "neptune": {
+     "offset": 877088,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "pluto": {
+     "offset": 950180,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "node": {
+     "offset": 1023272,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "lilith": {
+     "offset": 1169452,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "chiron": {
+     "offset": 1242544,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "eps": {
+     "offset": 1315636,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    },
+    "stcorr": {
+     "offset": 1461816,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    }
+   },
+   "bytes": 1607996
+  },
+  {
+   "file": "ephem-1900.b64.txt",
+   "from": 1900,
+   "to": 1999,
+   "start": 2415010.5,
+   "series": {
+    "sun": {
+     "offset": 0,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "moon": {
+     "offset": 146180,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mercury": {
+     "offset": 292360,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "venus": {
+     "offset": 438540,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mars": {
+     "offset": 584720,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "jupiter": {
+     "offset": 657812,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "saturn": {
+     "offset": 730904,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "uranus": {
+     "offset": 803996,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "neptune": {
+     "offset": 877088,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "pluto": {
+     "offset": 950180,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "node": {
+     "offset": 1023272,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "lilith": {
+     "offset": 1169452,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "chiron": {
+     "offset": 1242544,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "eps": {
+     "offset": 1315636,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    },
+    "stcorr": {
+     "offset": 1461816,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    }
+   },
+   "bytes": 1607996
+  },
+  {
+   "file": "ephem-2000.b64.txt",
+   "from": 2000,
+   "to": 2099,
+   "start": 2451534.5,
+   "series": {
+    "sun": {
+     "offset": 0,
+     "step": 1,
+     "n": 36546,
+     "kind": "lon"
+    },
+    "moon": {
+     "offset": 146184,
+     "step": 1,
+     "n": 36546,
+     "kind": "lon"
+    },
+    "mercury": {
+     "offset": 292368,
+     "step": 1,
+     "n": 36546,
+     "kind": "lon"
+    },
+    "venus": {
+     "offset": 438552,
+     "step": 1,
+     "n": 36546,
+     "kind": "lon"
+    },
+    "mars": {
+     "offset": 584736,
+     "step": 2,
+     "n": 18274,
+     "kind": "lon"
+    },
+    "jupiter": {
+     "offset": 657832,
+     "step": 2,
+     "n": 18274,
+     "kind": "lon"
+    },
+    "saturn": {
+     "offset": 730928,
+     "step": 2,
+     "n": 18274,
+     "kind": "lon"
+    },
+    "uranus": {
+     "offset": 804024,
+     "step": 2,
+     "n": 18274,
+     "kind": "lon"
+    },
+    "neptune": {
+     "offset": 877120,
+     "step": 2,
+     "n": 18274,
+     "kind": "lon"
+    },
+    "pluto": {
+     "offset": 950216,
+     "step": 2,
+     "n": 18274,
+     "kind": "lon"
+    },
+    "node": {
+     "offset": 1023312,
+     "step": 1,
+     "n": 36546,
+     "kind": "lon"
+    },
+    "lilith": {
+     "offset": 1169496,
+     "step": 2,
+     "n": 18274,
+     "kind": "lon"
+    },
+    "chiron": {
+     "offset": 1242592,
+     "step": 2,
+     "n": 18274,
+     "kind": "lon"
+    },
+    "eps": {
+     "offset": 1315688,
+     "step": 1,
+     "n": 36546,
+     "kind": "f32"
+    },
+    "stcorr": {
+     "offset": 1461872,
+     "step": 1,
+     "n": 36546,
+     "kind": "f32"
+    }
+   },
+   "bytes": 1608056
+  },
+  {
+   "file": "ephem-2100.b64.txt",
+   "from": 2100,
+   "to": 2199,
+   "start": 2488059.5,
+   "series": {
+    "sun": {
+     "offset": 0,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "moon": {
+     "offset": 146180,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mercury": {
+     "offset": 292360,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "venus": {
+     "offset": 438540,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mars": {
+     "offset": 584720,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "jupiter": {
+     "offset": 657812,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "saturn": {
+     "offset": 730904,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "uranus": {
+     "offset": 803996,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "neptune": {
+     "offset": 877088,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "pluto": {
+     "offset": 950180,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "node": {
+     "offset": 1023272,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "lilith": {
+     "offset": 1169452,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "chiron": {
+     "offset": 1242544,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "eps": {
+     "offset": 1315636,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    },
+    "stcorr": {
+     "offset": 1461816,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    }
+   },
+   "bytes": 1607996
+  },
+  {
+   "file": "ephem-2200.b64.txt",
+   "from": 2200,
+   "to": 2299,
+   "start": 2524583.5,
+   "series": {
+    "sun": {
+     "offset": 0,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "moon": {
+     "offset": 146180,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mercury": {
+     "offset": 292360,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "venus": {
+     "offset": 438540,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mars": {
+     "offset": 584720,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "jupiter": {
+     "offset": 657812,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "saturn": {
+     "offset": 730904,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "uranus": {
+     "offset": 803996,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "neptune": {
+     "offset": 877088,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "pluto": {
+     "offset": 950180,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "node": {
+     "offset": 1023272,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "lilith": {
+     "offset": 1169452,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "chiron": {
+     "offset": 1242544,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "eps": {
+     "offset": 1315636,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    },
+    "stcorr": {
+     "offset": 1461816,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    }
+   },
+   "bytes": 1607996
+  },
+  {
+   "file": "ephem-2300.b64.txt",
+   "from": 2300,
+   "to": 2399,
+   "start": 2561107.5,
+   "series": {
+    "sun": {
+     "offset": 0,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "moon": {
+     "offset": 146180,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mercury": {
+     "offset": 292360,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "venus": {
+     "offset": 438540,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "mars": {
+     "offset": 584720,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "jupiter": {
+     "offset": 657812,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "saturn": {
+     "offset": 730904,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "uranus": {
+     "offset": 803996,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "neptune": {
+     "offset": 877088,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "pluto": {
+     "offset": 950180,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "node": {
+     "offset": 1023272,
+     "step": 1,
+     "n": 36545,
+     "kind": "lon"
+    },
+    "lilith": {
+     "offset": 1169452,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "chiron": {
+     "offset": 1242544,
+     "step": 2,
+     "n": 18273,
+     "kind": "lon"
+    },
+    "eps": {
+     "offset": 1315636,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    },
+    "stcorr": {
+     "offset": 1461816,
+     "step": 1,
+     "n": 36545,
+     "kind": "f32"
+    }
+   },
+   "bytes": 1607996
+  }
+ ]
+}

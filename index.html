@@ -1,0 +1,2543 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3b3fa8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Натал">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+</head>
+<body>
+<title>Натальная карта</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Symbols:wght@400&family=Noto+Sans+Symbols+2&display=swap">
+<style>
+/* Layout: one column on the phone (form, wheel, tables); on wide screens the wheel sits left and tables right. */
+:root {
+  --bg: #f4f4f8;
+  --surface: #ffffff;
+  --ink: #1d1c33;
+  --muted: #5f5e78;
+  --line: #dddcea;
+  --accent: #3b3fa8;
+  --accent-ink: #ffffff;
+  --wheel-band: #eeedf6; --nav-pill: #e4e3f7;
+  --fire: #c2412d; --earth: #4e7d2c; --air: #a87a12; --water: #2f6fb8;
+  --fire-bg: #f8dcd5; --earth-bg: #dfeccf; --air-bg: #f6eac4; --water-bg: #d6e5f6;
+  --hard: #c0392b; --soft: #2f6fd8; --minor: #2e9a5b; --conj: #8b3fd9;
+  --warn-bg: #fff4d6; --warn-line: #e8cf85; --err-bg: #fde6e4; --err-line: #f0b2ab;
+  --f-display: "Cormorant", "Cormorant Garamond", Georgia, serif;
+  --f-body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-glyph: "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", "DejaVu Sans", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12121f; --surface: #1b1b2c; --ink: #e9e8f5; --muted: #a3a2bd; --line: #33334c;
+    --accent: #9da4ff; --accent-ink: #12121f; --wheel-band: #232338; --nav-pill: #2c2c48;
+    --fire: #f07a64; --earth: #8fc066; --air: #e2b84e; --water: #6fa8ec;
+    --fire-bg: #4a2620; --earth-bg: #28381d; --air-bg: #44391a; --water-bg: #1d3049;
+    --hard: #f0766a; --soft: #7da6ff; --minor: #5fce8c; --conj: #c79bff;
+    --warn-bg: #3a3218; --warn-line: #6b5a24; --err-bg: #3e1f1f; --err-line: #7a3a36;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12121f; --surface: #1b1b2c; --ink: #e9e8f5; --muted: #a3a2bd; --line: #33334c;
+  --accent: #9da4ff; --accent-ink: #12121f; --wheel-band: #232338; --nav-pill: #2c2c48;
+  --fire: #f07a64; --earth: #8fc066; --air: #e2b84e; --water: #6fa8ec;
+  --fire-bg: #4a2620; --earth-bg: #28381d; --air-bg: #44391a; --water-bg: #1d3049;
+  --hard: #f0766a; --soft: #7da6ff; --minor: #5fce8c; --conj: #c79bff;
+  --warn-bg: #3a3218; --warn-line: #6b5a24; --err-bg: #3e1f1f; --err-line: #7a3a36;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 16px calc(110px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+.wrap > * { min-width: 0; }
+header h1 { font: 600 2.1rem/1.1 var(--f-display); margin: 0; text-wrap: balance; letter-spacing: .01em; }
+.hrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.hbtns { display: flex; gap: 8px; }
+.fcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ava { flex: none; width: 42px; height: 42px; border-radius: 50%; background: var(--nav-pill); color: var(--accent); display: grid; place-items: center; font: 600 1.1rem var(--f-body); }
+.fc-txt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.fc-txt b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-txt small { color: var(--muted); font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-txt .fc-h { font-family: var(--f-num); font-size: .76rem; }
+.fc-txt .sg { font-size: .9rem; margin-left: 2px; }
+.modes { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, 1fr);
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding: 7px max(4px, env(safe-area-inset-left, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(4px, env(safe-area-inset-right, 0px)); }
+.modes button { font: 500 11px/1.2 var(--f-body); color: var(--muted); background: none; border: 0; padding: 0 0 2px; min-height: 48px; cursor: pointer;
+  display: grid; justify-items: center; align-content: start; gap: 3px; min-width: 0; white-space: nowrap; }
+.modes button .ic { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; font: 21px/1 var(--f-glyph); }
+.modes button[aria-selected="true"] { color: var(--accent); font-weight: 600; }
+.modes button[aria-selected="true"] .ic { background: var(--nav-pill); }
+@media (max-width: 360px) { .modes button { font-size: 10px; } .modes button .ic { width: 48px; } }
+.settings { display: grid; gap: 14px; } .settings[hidden] { display: none; }
+.set-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.set-card h2 { margin: 0; }
+.set-card .hint { margin: 0; font-size: .82rem; color: var(--muted); }
+.about summary { cursor: pointer; font-weight: 600; }
+.about-body { font-size: .8rem; color: var(--muted); display: grid; gap: 6px; margin-top: 8px; } .about-body p { margin: 0; }
+.w-pl, .w-pl-svg text { font-weight: 700; paint-order: stroke; stroke: currentColor; stroke-width: .6px; }
+.w-pl { stroke: var(--ink); } .w-pl.w-out { stroke: var(--accent); }
+.g, .pg, .grid-asp th { font-weight: 700; }
+.pane { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pane[hidden] { display: none; }
+.pane .full, .pane .hint { grid-column: 1 / -1; }
+.pane .hint { margin: 0; font-size: .85rem; color: var(--muted); }
+.steps { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg-full { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; }
+.seg-full button { padding: 8px 4px; }
+.pickrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.pickrow .pr-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .92rem; color: var(--muted); }
+.pickrow .pr-l b { color: var(--ink); font-weight: 600; }
+.pick-btn { position: relative; overflow: hidden; }
+.overlay-select { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; font-size: 16px; }
+.stepper { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 8px; align-items: center; }
+.stp { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--accent); font: 600 1.6rem/1 var(--f-body); cursor: pointer; }
+.stp-mid { display: grid; gap: 6px; justify-items: center; text-align: center; min-width: 0; }
+.stp-mid b { font: 600 1.15rem var(--f-display); }
+.stp-dt { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); width: 100%; }
+.stp-dt select { grid-column: 1 / -1; }
+.stp-dt input, .stp-dt select { font-size: .9rem; padding: 7px 8px; min-height: 38px; }
+.stp-dt input { padding: 7px 5px; }
+.stp-dt input::-webkit-calendar-picker-indicator { margin: 0; padding: 0; width: 13px; height: 13px; }
+.steprow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.steprow .pill { margin-left: auto; }
+.muted { color: var(--muted); font-size: .88rem; }
+.linkbtn { border: 0; background: none; color: var(--accent); font: 500 .85rem var(--f-body); cursor: pointer; padding: 2px 6px; }
+.fc-seg { justify-content: center; }
+.steps .btn { padding: 8px 10px; }
+.tag-out { color: var(--accent); font-weight: 600; }
+.orbs { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.orbs[hidden] { display: none; }
+.orbs-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.orbs-head h2 { margin: 0; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { font: 500 .88rem var(--f-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.orbs .hint { margin: 0; font-size: .82rem; color: var(--muted); }
+.orb-tbl table { width: auto; }
+.orb-tbl th, .orb-tbl td { padding: 3px 3px; text-align: center; }
+.orb-tbl th { font: 1rem var(--f-glyph); text-transform: none; letter-spacing: 0; color: var(--ink); background: var(--wheel-band); position: sticky; top: 0; }
+.orb-tbl th.pt-ax { font: 600 .72rem var(--f-body); }
+.orb-tbl td.asp { text-align: left; white-space: nowrap; position: sticky; left: 0; background: var(--surface); font-size: .82rem; padding-left: 8px; z-index: 1; }
+.orb-tbl td.asp label { display: flex; gap: 4px; align-items: center; cursor: pointer; }
+.orb-tbl td.asp input { width: auto; margin: 0; }
+.orb-tbl td.asp .g { width: auto; }
+.orb-tbl input.orb { width: 3.3em; padding: 5px 2px; text-align: center; font: .85rem var(--f-num); border-radius: 6px; }
+.orb-tbl tr.off input.orb { opacity: .4; }
+.orb-tbl input.orb.bad { border-color: var(--hard); background: var(--err-bg); }
+.orb-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.file-btn { position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.orb-msg { font-size: .85rem; color: var(--muted); min-height: 1.2em; }
+.orb-msg.err { color: var(--hard); }
+.theme-btn { font: 500 .85rem var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap; flex: none; }
+header p { margin: 4px 0 0; color: var(--muted); font-size: .9rem; max-width: 62ch; }
+form { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+  display: grid; gap: 12px 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.f { display: grid; gap: 4px; min-width: 0; }
+.f.full { grid-column: 1 / -1; }
+.f > span { font-size: .78rem; color: var(--muted); letter-spacing: .03em; text-transform: uppercase; }
+input, select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 9px 10px; width: 100%; min-width: 0; }
+input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: none; display: block; max-width: 100%; min-height: 42px; line-height: 1.4; text-align: left; }
+input::-webkit-date-and-time-value { text-align: left; margin: 0; }
+input::-webkit-datetime-edit { padding: 0; }
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible, .sugg button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; }
+.place { position: relative; }
+.sugg { position: static; margin-top: 4px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .15); overflow: hidden;
+  list-style: none; padding: 4px; margin-bottom: 0; }
+.sugg button { all: unset; display: block; width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+.sugg button:hover, .sugg button.on { background: var(--wheel-band); }
+.sugg small { display: block; color: var(--muted); font-size: .78rem; }
+.chosen { font-size: .8rem; color: var(--muted); font-family: var(--f-num); overflow-wrap: anywhere; }
+details { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 10px; }
+summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+.adv { display: grid; gap: 12px 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 12px; }
+.chk { grid-column: 1 / -1; display: flex; gap: 8px; align-items: flex-start; font-size: .9rem; }
+.chk input { width: auto; margin-top: 3px; }
+.full-chk { grid-column: 1 / -1; }
+.chk.dis { opacity: .45; }
+.chk.tiny { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+input:disabled { opacity: .45; }
+.note.ask { border-color: var(--accent); background: var(--surface); display: grid; gap: 10px; }
+.note.ask p { margin: 0; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: 500 .9rem var(--f-body); padding: 9px 14px; border-radius: 8px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
+.btn.on { background: var(--accent); color: var(--accent-ink); }
+.btn.save { background: var(--accent); color: var(--accent-ink); font-weight: 600; padding: 11px 18px; box-shadow: 0 2px 8px rgb(59 63 168 / .35); }
+.btn.save.done { background: var(--earth); border-color: var(--earth); box-shadow: none; }
+.saved { display: grid; gap: 8px; }
+.saved h2 { margin: 0; }
+.saved .hint { margin: 0; font-size: .85rem; color: var(--muted); }
+.saved .cloud.err { color: var(--hard); }
+.saved .exp { all: unset; cursor: pointer; color: var(--accent); padding: 8px 10px; border-radius: 8px; font-size: 1.05rem; line-height: 1; }
+.saved .exp:hover, .saved .exp:focus-visible { background: var(--wheel-band); }
+.saved[hidden] { display: none; }
+.srch { width: 100%; box-sizing: border-box; }
+.saved .ava { width: 38px; height: 38px; font-size: 1rem; }
+.saved .open .sig { font-family: var(--f-body); color: var(--ink); opacity: .8; }
+.saved .more { all: unset; cursor: pointer; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; color: var(--muted); font-size: 1.3rem; flex: none; }
+.saved .more:hover, .saved .more:focus-visible { background: var(--wheel-band); }
+.sheet { position: fixed; inset: 0; z-index: 60; }
+.sheet[hidden] { display: none; }
+.sheet-bg { position: absolute; inset: 0; background: rgb(0 0 0 / .4); }
+.sheet-panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: var(--surface); border-radius: 16px 16px 0 0; padding: 14px 12px max(16px, env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; box-shadow: 0 -4px 20px rgb(0 0 0 / .2); }
+.sheet-h { display: grid; gap: 2px; padding: 4px 8px 8px; border-bottom: 1px solid var(--line); }
+.sheet-h small { color: var(--muted); font-size: .82rem; }
+.sheet-list { display: grid; }
+.sheet-list[hidden] { display: none; }
+.sheet-list button, .sheet-cancel { all: unset; cursor: pointer; padding: 13px 10px; border-radius: 10px; font: 500 1rem var(--f-body); color: var(--ink); min-height: 22px; }
+.sheet-list button:hover, .sheet-list button:focus-visible, .sheet-cancel:hover, .sheet-cancel:focus-visible { background: var(--wheel-band); }
+.sheet-list .danger { color: var(--hard); }
+.sheet-q { margin: 6px 10px; color: var(--ink); }
+.sheet-cancel { text-align: center; color: var(--accent); font-weight: 600; border-top: 1px solid var(--line); border-radius: 0; }
+.synform { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.synform[hidden] { display: none; }
+.sf-h { display: flex; align-items: center; gap: 10px; }
+.err-t { color: var(--hard) !important; }
+.err-t:empty { display: none; }
+.saved .del.arm { color: var(--hard); font-size: .85rem; font-weight: 600; }
+.saved ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.saved li { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px 4px 4px 12px; min-width: 0; }
+.saved .open { all: unset; cursor: pointer; flex: 1; min-width: 0; padding: 6px 0; }
+.saved .open b { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved .open small { color: var(--muted); font-size: .8rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved .del { all: unset; cursor: pointer; color: var(--muted); padding: 8px 12px; border-radius: 8px; font-size: 1.1rem; line-height: 1; }
+.saved .del:hover, .saved .open:focus-visible, .saved .del:focus-visible { background: var(--wheel-band); }
+.actions { display: flex; flex-wrap: nowrap; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.actions::-webkit-scrollbar { display: none; }
+.pill { font: 500 13px/1 var(--f-body); padding: 8px 12px; min-height: 34px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; white-space: nowrap; flex: none; }
+.pill.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pill.save { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.pill.save.done { background: var(--earth); border-color: var(--earth); color: #fff; }
+.grid-asp { border-collapse: collapse; width: auto; font-size: .78rem; }
+.grid-asp th, .grid-asp td { border: 1px solid var(--line); width: 30px; min-width: 30px; height: 30px; padding: 0; text-align: center; vertical-align: middle; }
+.grid-asp th { font-family: var(--f-glyph); font-size: .95rem; color: var(--ink); text-transform: none; letter-spacing: 0; background: var(--wheel-band); }
+.grid-asp th.ang { font: 600 .7rem var(--f-body); }
+.grid-asp th svg { width: 1em; height: 1em; }
+.grid-asp td.x { background: var(--wheel-band); }
+.grid-asp td b { display: block; font: 600 .95rem/1 var(--f-glyph); }
+.grid-asp td small { display: block; font: .58rem/1.2 var(--f-num); color: var(--muted); }
+.grid-asp td.hard b { color: var(--hard); } .grid-asp td.soft b { color: var(--soft); } .grid-asp td.minor b { color: var(--minor); }
+details.list { margin-top: 10px; }
+.asp-sec { margin-top: 20px; display: grid; gap: 8px; }
+.asp-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.asp-head h2 { margin: 0; } .asp-head h2 small { font: 500 .85rem var(--f-num); color: var(--muted); }
+.seg { display: inline-flex; background: var(--wheel-band); border-radius: 999px; padding: 3px; gap: 2px; }
+.seg button { font: 500 13px var(--f-body); border: 0; background: none; color: var(--ink); padding: 6px 14px; border-radius: 999px; cursor: pointer; min-height: 32px; }
+.seg button[aria-selected="true"] { background: var(--surface); color: var(--accent); font-weight: 600; box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+.asp-list td.ag { white-space: nowrap; font-family: var(--f-glyph); font-size: 1.1rem; }
+.asp-list td.ag .g { width: auto; display: inline-block; min-width: 1.2em; text-align: center; font-weight: 700; }
+.asp-list td.ag .g.out { color: var(--accent); }
+.asp-list td.ag b { display: inline-block; min-width: 1.3em; text-align: center; font-weight: 700; }
+.asp-list td.ag b.hard { color: var(--hard); } .asp-list td.ag b.soft { color: var(--soft); } .asp-list td.ag b.minor { color: var(--minor); } .asp-list td.ag b.conj { color: var(--conj); }
+.asp-list td.an2 { color: var(--muted); font-size: .85rem; width: 100%; }
+.scroll-hint { position: relative; padding: 0; }
+.scroll-hint .scroller { overflow-x: auto; padding: 8px; }
+.scroll-hint::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 28px; border-radius: 0 12px 12px 0; pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--surface)); }
+details.list summary { margin-bottom: 8px; }
+.hint { grid-column: 1 / -1; margin: 0; font-size: .8rem; color: var(--muted); }
+button.go { grid-column: 1 / -1; justify-self: start; font: 600 1rem var(--f-body); background: var(--accent); color: var(--accent-ink);
+  border: 0; border-radius: 8px; padding: 11px 22px; cursor: pointer; }
+button.go:disabled { opacity: .5; cursor: progress; }
+.note { border-radius: 10px; padding: 10px 12px; font-size: .9rem; border: 1px solid var(--warn-line); background: var(--warn-bg); }
+.note.err { border-color: var(--err-line); background: var(--err-bg); }
+.notes { display: grid; gap: 8px; }
+.summary { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .88rem; color: var(--muted); }
+.summary b { color: var(--ink); font-weight: 500; }
+.summary .tag { font-family: var(--f-num); font-size: .8rem; }
+.result { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .result { grid-template-columns: minmax(0, 600px) minmax(0, 1fr); } }
+.wheel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px; position: relative; }
+.wheel-svg { cursor: zoom-in; }
+.zoom-btn { position: absolute; right: 8px; bottom: 8px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 1.15rem; cursor: pointer; box-shadow: 0 1px 4px rgb(0 0 0 / .12); }
+.wheel-hint { margin-top: -4px; }
+@media (max-width: 640px) {
+  .wheel { margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); border-radius: 0; border-left: 0; border-right: 0; padding: 6px 2px; }
+}
+.zoom { position: fixed; inset: 0; z-index: 50; background: #0e0e18; display: grid; }
+.zoom-stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; display: grid; place-items: center; }
+.zoom-inner { width: min(100vw, 100vh); transform-origin: center center; will-change: transform; background: var(--surface); border-radius: 8px; }
+.zoom-inner svg { display: block; width: 100%; height: auto; }
+.zoom-x { position: absolute; top: max(12px, env(safe-area-inset-top, 0px)); right: 12px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgb(255 255 255 / .15); color: #fff; font-size: 1.2rem; cursor: pointer; z-index: 2; }
+.zoom-info { position: absolute; left: 12px; right: 12px; bottom: max(24px, env(safe-area-inset-bottom, 0px)); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 12px 14px; font-size: .95rem; box-shadow: 0 4px 16px rgb(0 0 0 / .35); z-index: 2; }
+.zoom-tip { position: absolute; left: 0; right: 0; top: max(22px, env(safe-area-inset-top, 0px)); margin: 0; text-align: center; color: rgb(255 255 255 / .7); font-size: .8rem; pointer-events: none; padding: 0 64px; }
+.zoom-info:not([hidden]) ~ .zoom-tip { display: none; }
+body.noscroll { overflow: hidden; }
+.focus .w-asp { opacity: .1; }
+.focus .w-asp.hl { opacity: 1; stroke-width: 2.4; }
+.focus g.hl .w-pl-bg { stroke: var(--accent); stroke-width: 2.5; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--muted); }
+.ln { display: inline-block; width: 16px; height: 2px; margin-right: .4em; vertical-align: .25em; }
+.a-hard-bg { background: var(--hard); } .a-soft-bg { background: var(--soft); } .a-minor-bg { background: var(--minor); }
+.wheel svg { display: block; width: 100%; height: auto; max-width: 100%; }
+.tables { display: grid; gap: 18px; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+h2 { font: 600 1.35rem/1.2 var(--f-display); margin: 0 0 6px; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+tr:last-child td { border-bottom: 0; }
+tr.grp td { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--wheel-band); padding-top: 4px; padding-bottom: 4px; }
+th { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 500; }
+td.n { font-family: var(--f-num); font-size: .84rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.g { font-family: var(--f-glyph); font-size: 1.05rem; width: 1.6em; }
+.r { color: var(--hard); font-family: var(--f-num); font-size: .78rem; font-weight: 700; margin-left: 3px; }
+.sg { font: 700 1.05rem/1 var(--f-glyph); margin-left: 5px; vertical-align: -1px; }
+.sg.el0 { color: var(--fire); } .sg.el1 { color: var(--earth); } .sg.el2 { color: var(--air); } .sg.el3 { color: var(--water); }
+td.nm { max-width: 9.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.hs { text-align: right; }
+@media (max-width: 480px) {
+  .tbl table { font-size: .84rem; }
+  .tbl th, .tbl td { padding: 6px 5px; }
+  .tbl th:first-child, .tbl td:first-child { padding-left: 8px; }
+  .tbl td.n { font-size: .78rem; }
+  .lng, .an { display: none; }
+}
+@media (max-width: 360px) { .sec, .tbl .pg, .tbl .ap { display: none; } }
+.sht { display: none; }
+@media (max-width: 480px) { .sht { display: inline; } }
+.muted { color: var(--muted); }
+footer { font-size: .8rem; color: var(--muted); max-width: 70ch; display: grid; gap: 6px; }
+footer p { margin: 0; }
+.loading { color: var(--muted); padding: 30px 0; text-align: center; }
+/* SVG wheel */
+.w-band { fill: var(--wheel-band); stroke: var(--ink); stroke-width: 1.2; }
+.w-face { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
+.w-thin { fill: none; stroke: var(--line); stroke-width: 1; }
+.w-tick { stroke: var(--muted); stroke-width: .6; }
+.w-line { stroke: var(--ink); stroke-width: 1; }
+.w-cusp { stroke: var(--muted); stroke-width: .8; }
+.w-axis { stroke: var(--ink); stroke-width: 2; }
+.w-hn { fill: var(--ink); font: 600 11px var(--f-body); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.w-cl { fill: var(--ink); font: 500 12.5px var(--f-num); }
+.w-cl.ax { font-weight: 600; }
+.w-cl .axn { font: 700 12.5px var(--f-body); }
+.w-conj { fill: none; stroke: var(--conj); stroke-width: 5; stroke-linecap: round; }
+.w-mark-conj { stroke: var(--conj); stroke-width: 2.6; }
+.w-pl-conj { stroke: var(--conj); stroke-width: 1.8; }
+.w-pl-out { fill: var(--wheel-band); }
+.w-pl.w-out { fill: var(--accent); } .w-pl-svg.w-out { color: var(--accent); }
+.grid-asp td.conj b { color: var(--conj); }
+.a-conj-bg { background: var(--conj); }
+.w-cl tspan.gl { font: 14px var(--f-glyph); }
+.pluto { fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; }
+.w-pl-svg { color: var(--ink); }
+td.g svg { width: 1.05em; height: 1.05em; vertical-align: -0.15em; }
+.w-ax { fill: var(--ink); font: 600 11px var(--f-body); }
+.w-sign { font: 600 21px var(--f-glyph); }
+.sec0 { fill: var(--fire-bg); } .sec1 { fill: var(--earth-bg); } .sec2 { fill: var(--air-bg); } .sec3 { fill: var(--water-bg); }
+.w-secline { stroke: var(--ink); stroke-width: 1; }
+.sd { display: inline-block; width: .55em; height: .55em; border-radius: 50%; margin-right: .4em; vertical-align: .05em; }
+.sd0 { background: var(--fire); } .sd1 { background: var(--earth); } .sd2 { background: var(--air); } .sd3 { background: var(--water); }
+.w-pl { fill: var(--ink); font: 25px var(--f-glyph); }
+.w-pl-bg { fill: var(--surface); }
+.w-deg { fill: var(--muted); font: 10px var(--f-num); }
+.w-retro { fill: var(--hard); font: 700 10px var(--f-num); paint-order: stroke; stroke: var(--bg); stroke-width: 2.5px; }
+.w-lead { stroke: var(--line); stroke-width: .7; }
+.w-mark { stroke: var(--ink); stroke-width: 1.6; }
+.el0 { fill: var(--fire); } .el1 { fill: var(--earth); } .el2 { fill: var(--air); } .el3 { fill: var(--water); }
+.a-hard { stroke: var(--hard); } .a-soft { stroke: var(--soft); } .a-minor { stroke: var(--minor); }
+@media (max-width: 520px) {
+  form, .adv { grid-template-columns: minmax(0, 1fr); }
+  header h1 { font-size: 1.8rem; }
+  button.go { justify-self: stretch; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="hrow"><h1 id="viewTitle">Натальная карта</h1><button type="button" class="pill" id="newBtn">＋ Новая</button></div>
+  </header>
+
+  <section class="saved" id="saved" hidden>
+    <p class="hint" id="savedEmpty">Пока пусто. Постройте карту и нажмите «Сохранить в «Мои карты»».</p>
+    <input id="savedSearch" type="search" class="srch" placeholder="Поиск по имени" aria-label="Поиск по имени" hidden>
+    <ul id="savedList"></ul>
+    <p class="hint" id="savedNone" hidden>Никого не нашлось.</p>
+    <div class="orb-msg" id="savedMsg" role="status"></div>
+    <p class="hint cloud" id="cloudState">Подключаю облачное хранилище…</p>
+  </section>
+
+  <section class="settings" id="settings" hidden>
+    <div class="set-card"><h2>Тема</h2><div class="orb-actions"><button type="button" class="btn" id="themeBtn" aria-label="Сменить тему">☾ Тёмная</button></div></div>
+    <div class="set-card"><h2>Ориентация круга</h2>
+      <div class="tabs" role="radiogroup" id="wheelFrom">
+        <button type="button" role="radio" data-wf="asc" aria-checked="true" aria-selected="true">От асцендента</button>
+        <button type="button" role="radio" data-wf="aries" aria-checked="false" aria-selected="false">От 0° Овна</button>
+      </div>
+      <p class="hint">Что стоит слева на круге: асцендент или 0° Овна.</p>
+    </div>
+    <div class="set-card"><h2>Файлы и резервная копия</h2>
+      <div class="orb-actions">
+        <button type="button" class="btn" id="exportAll">Выгрузить все карты</button>
+        <button type="button" class="btn" id="backupBtn">Резервная копия</button>
+        <label class="btn file-btn">Загрузить из файла<input type="file" id="importCharts" accept=".json,application/json"></label>
+      </div>
+      <div class="orb-msg" id="fileMsg" role="status"></div>
+    </div>
+  <section class="orbs set-card" id="orbPanel">
+    <div class="orbs-head"><h2>Орбисы</h2></div>
+    <div class="tabs" role="tablist" id="orbTabs"></div>
+    <p class="hint">Орбисы в градусах для каждой точки и аспекта, как в ZET; для пары берётся больший. Галочка включает аспект. </p>
+    <div class="tbl orb-tbl" id="orbTable"></div>
+    <div class="orb-actions">
+      <button type="button" class="btn" id="orbReset">Сбросить к исходным</button>
+      <button type="button" class="btn" id="orbExport">Экспорт</button>
+      <label class="btn file-btn">Импорт<input type="file" id="orbImport" accept=".json,application/json"></label>
+    </div>
+    <div class="orb-msg" id="orbMsg" role="status"></div>
+  </section>
+
+    <details class="set-card about"><summary>О расчётах</summary>
+      <div class="about-body"><p>Таблицы эфемерид рассчитаны Swiss Ephemeris (файлы sepl/semo/seas_18) на 1800–2399 гг. и интерполируются по 6 точкам: погрешность меньше угловой секунды. Таблицы загружаются по векам, когда нужны. Карты из «Моих карт» хранятся в аккаунте Claude, а в версии для «Домой» на самом телефоне. Часовые пояса берутся из базы IANA, встроенной в браузер; история до 1970 г. для поясов, которые браузер сливает с соседними, дополнена полной базой. Местное среднее время по долготе места рождения используется до введения законного времени, а в поясах бывшей Российской империи до 1 июля 1919 г.</p>
+    <p>Аспекты: соединение, полусекстиль, секстиль, квадрат, трин, полутораквадрат, квинконс, оппозиция. Орбисы взяты из настроек ZET: у каждой точки свой орбис для каждого аспекта, для пары берётся больший из двух орбисов. Аспекты к асценденту и MC включаются кнопкой у карты. Орбисы меняются на этой вкладке и хранятся в этом браузере, отдельно для каждого вида карты.</p></div>
+    </details>
+  </section>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-bg" data-act="cancel"></div>
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-h"><b id="sheetTitle"></b><small id="sheetSub"></small></div>
+      <div class="sheet-list" id="sheetMain">
+        <button type="button" data-act="open">Открыть карту</button>
+        <button type="button" data-act="transit">Транзиты к этой карте</button>
+        <button type="button" data-act="syn">Синастрия с…</button>
+        <button type="button" data-act="edit">Изменить данные</button>
+        <button type="button" data-act="file">Скачать файл</button>
+        <button type="button" data-act="del" class="danger">Удалить…</button>
+      </div>
+      <div class="sheet-list" id="sheetDel" hidden>
+        <p class="sheet-q">Удалить эту карту из «Мои карты»? Это нельзя отменить.</p>
+        <button type="button" data-act="delok" class="danger">Удалить</button>
+      </div>
+      <button type="button" class="sheet-cancel" data-act="cancel">Отмена</button>
+    </div>
+  </div>
+  <div class="zoom" id="zoom" hidden role="dialog" aria-label="Круг на весь экран">
+    <div class="zoom-stage" id="zoomStage"><div class="zoom-inner" id="zoomInner"></div></div>
+    <button type="button" class="zoom-x" id="zoomClose" aria-label="Закрыть">✕</button>
+    <div class="zoom-info" id="zoomInfo" role="status" hidden></div>
+    <p class="zoom-tip">Два пальца — масштаб, нажатие на планету — её аспекты</p>
+  </div>
+
+  <nav class="modes" role="tablist" aria-label="Разделы" id="modes">
+    <button type="button" role="tab" data-mode="natal" aria-selected="true"><span class="ic">☉</span>Карта</button>
+    <button type="button" role="tab" data-mode="transit" aria-selected="false"><span class="ic">♃</span>Прогноз</button>
+    <button type="button" role="tab" data-mode="synastry" aria-selected="false"><span class="ic">⚭</span>Синастрия</button>
+    <button type="button" role="tab" data-mode="charts" aria-selected="false"><span class="ic">☰</span>Мои карты</button>
+    <button type="button" role="tab" data-mode="settings" aria-selected="false"><span class="ic">⚙</span>Настройки</button>
+  </nav>
+
+  <div class="seg seg-full" role="tablist" aria-label="Вид прогноза" id="fcSeg" hidden>
+    <button type="button" role="tab" data-fc="transit" aria-selected="true">Транзиты</button>
+    <button type="button" role="tab" data-fc="solar" aria-selected="false">Соляр</button>
+    <button type="button" role="tab" data-fc="lunar" aria-selected="false">Лунар</button>
+    <button type="button" role="tab" data-fc="direction" aria-selected="false">Дирекции</button>
+  </div>
+
+  <section class="pane" id="retPane" hidden>
+    <p class="hint pick-empty">Сначала сохраните натальную карту в «Мои карты»: возврат считается к ней.</p>
+    <div class="pickrow full"><span class="pr-l">К карте: <b class="base-lbl"></b></span><label class="pill pick-btn">Сменить<select id="retBase" class="pick overlay-select" aria-label="Натальная карта"></select></label></div>
+    <div class="f full place">
+      <label class="f"><span>Где человек в день возврата</span>
+        <input id="retPlace" placeholder="Начните вводить город" role="combobox" aria-expanded="false" aria-controls="retSugg" aria-autocomplete="list"></label>
+      <ul class="sugg" id="retSugg" role="listbox" hidden></ul>
+      <div class="chosen" id="retChosen"></div>
+      <p class="hint" id="retHint"></p>
+    </div>
+    <div class="stepper full" id="retSteps">
+      <button type="button" class="stp" data-ret="-1" aria-label="Предыдущий возврат">‹</button>
+      <div class="stp-mid"><b id="retLbl">Соляр</b><button type="button" class="linkbtn" data-ret="0">к текущему</button></div>
+      <button type="button" class="stp" data-ret="1" aria-label="Следующий возврат">›</button>
+    </div>
+  </section>
+
+  <section class="pane" id="dirPane" hidden>
+    <p class="hint pick-empty">Сначала сохраните натальную карту в «Мои карты»: дирекции строятся к ней.</p>
+    <div class="pickrow full"><span class="pr-l">К карте: <b class="base-lbl"></b></span><label class="pill pick-btn">Сменить<select id="dirBase" class="pick overlay-select" aria-label="Натальная карта"></select></label></div>
+    <div class="stepper full">
+      <button type="button" class="stp" data-dmove="-1" aria-label="Назад">‹</button>
+      <div class="stp-mid"><input id="dirDate" type="date" min="1800-01-01" max="2399-12-31" aria-label="Дата дирекций"></div>
+      <button type="button" class="stp" data-dmove="1" aria-label="Вперёд">›</button>
+    </div>
+    <div class="steprow full" id="dirSteps"><span class="muted">Шаг:</span>
+      <div class="seg" id="dirUnit"><button type="button" data-unit="1" aria-selected="true">месяц</button><button type="button" data-unit="12" aria-selected="false">год</button></div>
+      <button type="button" class="pill" data-dstep="0">Сегодня</button></div>
+  </section>
+
+  <section class="pane" id="trPane" hidden>
+    <p class="hint pick-empty">Сначала сохраните натальную карту в «Мои карты»: транзиты строятся к ней.</p>
+    <div class="pickrow full"><span class="pr-l">К карте: <b class="base-lbl"></b></span><label class="pill pick-btn">Сменить<select id="trBase" class="pick overlay-select" aria-label="Натальная карта"></select></label></div>
+    <div class="stepper full">
+      <button type="button" class="stp" data-tmove="-1" aria-label="Назад">‹</button>
+      <div class="stp-mid stp-dt"><input id="trDate" type="date" min="1800-01-01" max="2399-12-31" aria-label="Дата"><input id="trTime" type="time" aria-label="Время"><select id="trTz" aria-label="Часовой пояс"></select></div>
+      <button type="button" class="stp" data-tmove="1" aria-label="Вперёд">›</button>
+    </div>
+    <div class="steprow full" id="trSteps"><span class="muted">Шаг:</span>
+      <div class="seg" id="trUnit"><button type="button" data-unit="hour" aria-selected="false">час</button><button type="button" data-unit="day" aria-selected="true">день</button><button type="button" data-unit="month" aria-selected="false">месяц</button></div>
+      <button type="button" class="pill" data-step="now">Сейчас</button></div>
+  </section>
+
+  <section class="pane" id="synPane" hidden>
+    <p class="hint pick-empty">Выберите двух людей из «Мои карты» или введите данные вручную.</p>
+    <label class="f full"><span>Человек A (внутренний круг, дома)</span><select id="synA" class="pick"></select></label>
+    <label class="f full"><span>Человек B (внешний круг)</span><select id="synB" class="pick"></select></label>
+    <div class="steps full"><button type="button" class="pill" id="synSwap">⇅ Поменять местами</button><button type="button" class="pill" id="synEnter">✎ Ввести данные</button></div>
+    <div class="synform full" id="synForm" hidden>
+      <div class="sf-h"><b>Новые данные для</b><div class="seg" id="synSide"><button type="button" data-side="a" aria-selected="false">A</button><button type="button" data-side="b" aria-selected="true">B</button></div></div>
+      <label class="f"><span>Имя</span><input id="sfName" placeholder="Необязательно"></label>
+      <label class="f"><span>Дата рождения</span><input id="sfDate" type="date" min="1800-01-01" max="2399-12-31"></label>
+      <div class="f"><label class="f"><span>Местное время</span><input id="sfTime" type="time"></label>
+        <label class="chk tiny"><input type="checkbox" id="sfNotime"> Время неизвестно</label></div>
+      <div class="f place"><label class="f"><span>Место рождения</span>
+        <input id="sfPlace" placeholder="Начните вводить город" role="combobox" aria-expanded="false" aria-controls="sfSugg" aria-autocomplete="list"></label>
+        <ul class="sugg" id="sfSugg" role="listbox" hidden></ul>
+        <div class="chosen" id="sfChosen"></div></div>
+      <p class="hint err-t" id="sfMsg" role="status"></p>
+      <div class="btns"><button type="button" class="btn save" id="sfGo">Построить</button><button type="button" class="btn" id="sfCancel">Отмена</button></div>
+    </div>
+  </section>
+
+  <section class="fcard" id="formCard" hidden></section>
+
+  <form id="form" autocomplete="off" novalidate>
+    <label class="f full"><span>Имя</span><input id="name" placeholder="Необязательно"></label>
+    <label class="f"><span>Дата рождения</span><input id="date" type="date" min="1800-01-01" max="2399-12-31" required></label>
+    <div class="f"><label class="f"><span>Местное время</span><input id="time" type="time" step="1" required></label>
+      <label class="chk tiny"><input type="checkbox" id="notime"> Время неизвестно</label></div>
+    <div class="f full place">
+      <label class="f"><span>Место рождения</span>
+        <input id="place" placeholder="Начните вводить город" role="combobox" aria-expanded="false" aria-controls="sugg" aria-autocomplete="list"></label>
+      <ul class="sugg" id="sugg" role="listbox" hidden></ul>
+      <div class="chosen" id="chosen"></div>
+    </div>
+    <details id="more">
+      <summary>Координаты и часовой пояс вручную</summary>
+      <div class="adv">
+        <label class="f"><span>Широта (север +)</span><input id="lat" inputmode="decimal" placeholder="55.7558"></label>
+        <label class="f"><span>Долгота (восток +)</span><input id="lon" inputmode="decimal" placeholder="37.6173"></label>
+        <label class="f"><span>Часовой пояс</span><select id="tz"></select></label>
+        <label class="f"><span>Или смещение от UTC</span><input id="off" placeholder="+03:00"></label>
+        <p class="hint">Координаты заменяют выбранный город. Пояс по умолчанию берётся от ближайшего города. Смещение от UTC указывайте, только если оно точно известно, например из документов: тогда база часовых поясов не используется.</p>
+      </div>
+    </details>
+    <label class="chk full-chk"><input type="checkbox" id="oldstyle"> Дата по старому стилю (юлианский календарь, Россия до 14.02.1918)</label>
+    <button class="go" id="go" type="submit" disabled>Построить карту</button>
+  </form>
+
+  <div class="notes" id="notes"></div>
+  <section id="out"><div class="loading">Загружаю таблицы эфемерид и базу городов…</div></section>
+
+</div>
+
+<script>
+"use strict";
+/* ---------- Хранение: память браузера + облачная база Claude ----------
+   localStorage у опубликованной страницы может пропасть при обновлении версии,
+   поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
+   data/users/<id>/charts и data/users/<id>/prefs. localStorage — быстрый кэш. */
+const MEM = {};
+function lsGet(k) { if (k in MEM) return MEM[k]; try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { MEM[k] = String(v); CLOUD.dirty.add(k); cloudSchedule(); localStorage.setItem(k, v); }
+const CLOUD = { db: null, uid: null, ready: false, dirty: new Set(), deleted: [], timer: null, busy: false, state: "connecting" };
+const SYNC_KEYS = ["natal-charts-v1", "natal-orbs-v1", "natal-theme", "natal-show-minor", "natal-show-ang", "natal-tr-slow", "natal-syn-sept", "natal-ret-place", "natal-ret-dbl", "natal-last-fc", "natal-wheel", "natal-asp-view"];
+function cloudSchedule() { if (!CLOUD.ready) return; clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudFlush, 400); }
+async function cloudFlush() {
+  if (!CLOUD.ready || CLOUD.busy || !CLOUD.dirty.size) return;
+  CLOUD.busy = true;
+  const keys = [...CLOUD.dirty]; CLOUD.dirty.clear();
+  try {
+    const base = "data/users/" + CLOUD.uid + "/";
+    if (keys.includes("natal-charts-v1")) {
+      // другое окно или телефон могли записать своё: перечитываем и сливаем по id
+      const snap = await CLOUD.db.doc(base + "charts").get();
+      const merged = cloudMergeCharts(snap.exists ? snap.data() : null);
+      await CLOUD.db.doc(base + "charts").set({ v: 1, list: JSON.stringify(merged), deleted: CLOUD.deleted.slice(-500) });
+    }
+    const pk = keys.filter(k => k !== "natal-charts-v1");
+    if (pk.length) { const prefs = {}; for (const k of SYNC_KEYS) if (k !== "natal-charts-v1" && lsGet(k) !== null) prefs[k] = lsGet(k); await CLOUD.db.doc(base + "prefs").set({ v: 1, keys: prefs }); }
+    cloudStatus("ok");
+  } catch (e) { for (const k of keys) CLOUD.dirty.add(k); cloudStatus("error"); setTimeout(cloudFlush, 5000); }
+  finally { CLOUD.busy = false; if (CLOUD.dirty.size) cloudSchedule(); }
+}
+// Слияние карт облака с локальными: объединение по id без удалённых; локальный список обновляется
+function cloudMergeCharts(cd) {
+  let remote = []; try { remote = cd && cd.list ? JSON.parse(cd.list) : []; } catch (e) { remote = []; }
+  for (const id of (cd && Array.isArray(cd.deleted) ? cd.deleted : [])) if (!CLOUD.deleted.includes(id)) CLOUD.deleted.push(id);
+  let local = []; try { local = JSON.parse(lsGet("natal-charts-v1") || "[]"); } catch (e) {}
+  const del = new Set(CLOUD.deleted), have = new Set(local.map(x => x && x.id));
+  const merged = remote.filter(x => x && !have.has(x.id)).concat(local).filter(x => x && !del.has(x.id));
+  const s = JSON.stringify(merged);
+  if (s !== lsGet("natal-charts-v1")) { MEM["natal-charts-v1"] = s; try { localStorage.setItem("natal-charts-v1", s); } catch (e) {} if (CLOUD.onCharts) CLOUD.onCharts(); }
+  return merged;
+}
+function cloudStatus(s) {
+  CLOUD.state = s;
+  const el = document.getElementById("cloudState"); if (!el) return;
+  el.textContent = s === "ok" ? "☁ Карты и настройки хранятся в вашем аккаунте Claude и не пропадут при обновлении приложения."
+    : s === "local" ? localStatusText()
+    : s === "error" ? "Не удалось сохранить в облако, повторяю попытку…" : "Подключаю облачное хранилище…";
+  el.classList.toggle("err", s === "error" || (s === "local" && backupDue()));
+}
+// Вне Claude карты живут только на телефоне: просим браузер не стирать их и напоминаем про резервную копию
+const STANDALONE = !(window.claude && window.claude.use);
+function lastBackup() { try { return localStorage.getItem("natal-last-backup") || ""; } catch (e) { return ""; } }
+function backupDue() {
+  const lb = lastBackup(); let n = 0; try { n = JSON.parse(lsGet("natal-charts-v1") || "[]").length; } catch (e) {}
+  return n > 0 && (!lb || Date.now() - Date.parse(lb) > 30 * 864e5);
+}
+function localStatusText() {
+  const lb = lastBackup();
+  return "Карты хранятся на этом телефоне, в этом приложении. " + (lb ? `Последняя резервная копия: ${lb.slice(8, 10)}.${lb.slice(5, 7)}.${lb.slice(0, 4)}.` : "Резервной копии ещё не было.") +
+    (backupDue() ? " Сделайте копию: Настройки → «Резервная копия»." : "");
+}
+if (STANDALONE) { try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {} }
+async function cloudInit(onLoaded) {
+  try {
+    if (!window.claude || !window.claude.use) { cloudStatus("local"); return; }
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    const uid = user && await user.id();
+    if (!db || !uid) { cloudStatus("local"); return; }
+    const base = "data/users/" + uid + "/";
+    const [cs, ps] = await Promise.all([db.doc(base + "charts").get(), db.doc(base + "prefs").get()]);
+    CLOUD.db = db; CLOUD.uid = uid;
+    // Карты: облако + локальные, которых там нет и которые не удалены (C2: пометки удаления объединяются)
+    const cd = cs.exists ? cs.data() : null;
+    const before = cd && cd.list ? cd.list : null;
+    const merged = cloudMergeCharts(cd);
+    if (!cd || JSON.stringify(merged) !== before) CLOUD.dirty.add("natal-charts-v1");
+    // Настройки: облако главнее, локальные без пары — в облако
+    const pk = ps.exists && ps.data().keys ? ps.data().keys : {};
+    for (const k of SYNC_KEYS) {
+      if (k === "natal-charts-v1") continue;
+      if (typeof pk[k] === "string") { MEM[k] = pk[k]; try { localStorage.setItem(k, pk[k]); } catch (e) {} }
+      else if (lsGet(k) !== null) CLOUD.dirty.add(k);
+    }
+    CLOUD.ready = true; cloudStatus("ok");
+    onLoaded();
+    cloudSchedule();
+    // изменения из другого окна или с другого устройства приходят сразу
+    CLOUD.onCharts = () => { if (typeof renderSaved === "function") renderSaved(); };
+    db.doc(base + "charts").onSnapshot(sn => { if (sn.exists && !sn.metadata.hasPendingWrites) cloudMergeCharts(sn.data()); }, () => {});
+  } catch (e) { cloudStatus("local"); }
+}
+const SIGNS = ["Овен","Телец","Близнецы","Рак","Лев","Дева","Весы","Скорпион","Стрелец","Козерог","Водолей","Рыбы"];
+const SIGN_GLYPHS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"];
+const VS15 = "︎";
+const BODIES = [
+  ["sun","Солнце","☉"],["moon","Луна","☽"],["mercury","Меркурий","☿"],["venus","Венера","♀"],
+  ["mars","Марс","♂"],["jupiter","Юпитер","♃"],["saturn","Сатурн","♄"],["uranus","Уран","♅"],
+  ["neptune","Нептун","♆"],["pluto","Плутон","♇"],["node","Сев. узел (ср.)","☊"],
+  ["lilith","Лилит (ср.)","⚸"],["chiron","Хирон","⚷"],
+];
+const ASPECTS = [
+  ["conjunction","Соединение","☌",0,"conj"],["semisextile","Полусекстиль","⚺",30,"minor"],
+  ["sextile","Секстиль","⚹",60,"soft"],["square","Квадрат","□",90,"hard"],["trine","Трин","△",120,"soft"],
+  ["sesquiquadrate","Полутораквадрат","⚼",135,"hard"],["quincunx","Квинконс","⚻",150,"minor"],
+  ["opposition","Оппозиция","☍",180,"hard"],
+];
+// Орбисы Kate из ZET 9.2: градусы для каждой точки по каждому аспекту (ASC = ASC/DSC, MC = MC/IC).
+// Та же таблица в natal_chart/aspects.py.
+const ORB_POINTS = ["sun","moon","mercury","venus","mars","jupiter","saturn","uranus","neptune","pluto","node","lilith","chiron","asc","mc"];
+const ORB_ROWS = {
+  conjunction:    [12,12,10,10,10,10,10,8,8,8,6,6,1,5,5],
+  semisextile:    [1.5,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  sextile:        [8,8,7,7,7,6,6,5,5,5,4,4,1,5,5],
+  square:         [8,8,7,7,7,8,8,8,8,8,5,5,1,1,1],
+  trine:          [10,10,9,9,9,8,8,7,7,7,5,5,1,5,5],
+  sesquiquadrate: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  quincunx:       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  opposition:     [12,12,10,10,10,10,10,8,8,8,7,5,1,5,5],
+};
+const MAJOR = new Set(["conjunction","sextile","square","trine","opposition"]);
+// Орбисы Kate из ZET для транзитов и синастрии (страница «ТРАНЗИТ», 07.11.2026)
+const ORB_ROWS_TR = {
+  conjunction:    [5,8,4,4,4,2,2,1.5,1,1,1,1,1,1,1],
+  semisextile:    [1,1,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+  sextile:        [2,6,2,2,2,1.5,1.5,0.5,0.5,0.5,1,1,1,1,1],
+  square:         [3,7,3,3,3,2,2,1,1,1,1,1,1,1,1],
+  trine:          [3,7,3,3,3,2,2,1,1,1,1,1,1,1,1],
+  sesquiquadrate: [1,1,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+  quincunx:       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  opposition:     [5,8,3,3,3,2,2,1,1,1,1,1,1,1,1],
+};
+const ORB_RULE = "max";   // орбис пары: "mean" — среднее двух точек, "max" — больший (решение Kate)
+// Наборы орбисов по видам карт. Транзиты и дирекции пока копия натала, свои значения пришлёт Kate.
+const ORB_PROFILES = [["natal", "Натал"], ["transit", "Транзиты"], ["synastry", "Синастрия"], ["direction", "Дирекции"]];
+const PROFILE_ROWS = { natal: ORB_ROWS, transit: ORB_ROWS_TR, synastry: ORB_ROWS_TR, direction: ORB_ROWS_TR };   // дирекции: пока копия транзитных (ждём ZET)
+const ORB_STORE = "natal-orbs-v1";
+function defaultProfile(prof = "natal") {
+  const orbs = {}, on = {}, rows = PROFILE_ROWS[prof] || ORB_ROWS;
+  for (const [k] of ASPECTS) { orbs[k] = rows[k].slice(); on[k] = true; }
+  return { orbs, on };
+}
+function validProfile(pr) {
+  if (!pr || typeof pr !== "object" || !pr.orbs || !pr.on) return false;
+  return ASPECTS.every(([k]) => Array.isArray(pr.orbs[k]) && pr.orbs[k].length === ORB_POINTS.length &&
+    pr.orbs[k].every(v => typeof v === "number" && v >= 0 && v <= 15) && typeof pr.on[k] === "boolean");
+}
+function loadOrbSet() {
+  const set = {};
+  let saved = null;
+  try { saved = JSON.parse(lsGet(ORB_STORE) || "null"); } catch (e) {}
+  // Набор транзитов, сохранённый до получения орбисов ZET (копия натала без правок), заменяем на новые значения
+  const natalCopy = JSON.stringify(defaultProfile("natal"));
+  for (const [k] of ORB_PROFILES) {
+    const pr = saved && saved.profiles && saved.profiles[k];
+    // то же для дирекций до версии 3: несохранённая копия натала заменяется транзитной таблицей
+    const ver = (saved && saved.version) || 1;
+    const stale = (k === "transit" && ver < 2) || (k === "direction" && ver < 3);
+    set[k] = validProfile(pr) && !(stale && JSON.stringify(pr) === natalCopy) ? pr : defaultProfile(k);
+  }
+  return set;
+}
+let ORBSET = loadOrbSet();
+function storeOrbSet() {
+  try { lsSet(ORB_STORE, JSON.stringify({ version: 3, rule: ORB_RULE, profiles: ORBSET })); return true; } catch (e) { return false; }
+}
+function pairOrb(asp, a, b, prof = "natal") {
+  const r = ORBSET[prof].orbs[asp], x = r[ORB_POINTS.indexOf(a)], y = r[ORB_POINTS.indexOf(b)];
+  return ORB_RULE === "max" ? Math.max(x, y) : (x + y) / 2;
+}
+const ROMAN = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const norm = x => ((x % 360) + 360) % 360;
+const adist = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- Таблицы эфемерид (по векам, загружаются по требованию) ---------- */
+const EPH = { meta: null, data: new Map(), pending: new Map() };
+function chunkIndexFor(jd) {
+  const cs = EPH.meta.chunks;
+  for (let i = 0; i < cs.length; i++) {
+    const c = cs[i], end = c.start + c.series.eps.n - 1;
+    if (jd >= c.start + 6 && jd <= end - 6) return i;
+  }
+  return -1;
+}
+async function loadChunk(i) {
+  if (EPH.data.has(i)) return;
+  if (!EPH.pending.has(i)) EPH.pending.set(i, (async () => {
+    const c = EPH.meta.chunks[i];
+    const r = await fetch(c.file);
+    if (!r.ok) throw new Error(`таблицы ${c.from}–${c.to}: ${r.status}`);
+    const bin = atob((await r.text()).trim()), u8 = new Uint8Array(bin.length);
+    for (let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
+    const series = {};
+    for (const [key, sr] of Object.entries(c.series))
+      series[key] = { step: sr.step, n: sr.n, kind: sr.kind,
+        arr: sr.kind === "lon" ? new Uint32Array(u8.buffer, sr.offset, sr.n) : new Float32Array(u8.buffer, sr.offset, sr.n) };
+    EPH.data.set(i, { start: c.start, series });
+  })());
+  try { await EPH.pending.get(i); } finally { EPH.pending.delete(i); }
+}
+async function ensureEph(jds) {
+  for (const jd of jds) {
+    const i = chunkIndexFor(jd);
+    if (i < 0) throw new RangeError("Поддерживаются даты с 1800 по 2399 год.");
+    await loadChunk(i);
+  }
+}
+function lagrange(vals, x) {      // узлы 0..5, x — дробная позиция
+  let sum = 0;
+  for (let i = 0; i < 6; i++) {
+    let t = vals[i];
+    for (let j = 0; j < 6; j++) if (j !== i) t *= (x - j) / (i - j);
+    sum += t;
+  }
+  return sum;
+}
+function interp(key, jd) {
+  const ci = chunkIndexFor(jd), chunk = EPH.data.get(ci);
+  if (!chunk) throw new RangeError(ci < 0 ? "Поддерживаются даты с 1800 по 2399 год." : "Таблицы эфемерид для этой даты ещё не загружены.");
+  const s = chunk.series[key];
+  const x = (jd - chunk.start) / s.step;
+  const i0 = Math.floor(x) - 2;
+  const v = new Array(6);
+  for (let k = 0; k < 6; k++) v[k] = s.kind === "lon" ? s.arr[i0 + k] * (360 / 4294967296) : s.arr[i0 + k];
+  if (s.kind === "lon") for (let k = 1; k < 6; k++) {
+    while (v[k] - v[k - 1] > 180) v[k] -= 360;
+    while (v[k] - v[k - 1] < -180) v[k] += 360;
+  }
+  const r = lagrange(v, x - i0);
+  return s.kind === "lon" ? norm(r) : r;
+}
+function planetPositions(jd) {
+  return BODIES.map(([key, name, glyph]) => {
+    const lon = interp(key, jd);
+    const h = 0.01;
+    let d = interp(key, jd + h / 2) - interp(key, jd - h / 2);
+    if (d > 180) d -= 360; if (d < -180) d += 360;
+    return { key, name, glyph, lon, speed: d / h };
+  });
+}
+
+/* ---------- Звёздное время и дома ---------- */
+function gmst82Hours(jd) {
+  const t = (jd - 2451545.0) / 36525;
+  const sec = 67310.54841 + (876600 * 3600 + 8640184.812866) * t + 0.093104 * t * t - 6.2e-6 * t * t * t;
+  return (((sec / 3600) % 24) + 24) % 24;
+}
+function lonFromRa(raDeg, e) { const r = raDeg * D2R; return Math.atan2(Math.sin(r), Math.cos(r) * Math.cos(e)); }
+function placidusCusp(armc, lat, eps, house) {
+  const e = eps * D2R, f = lat * D2R;
+  const frac = {11: 1/3, 12: 2/3, 2: 2/3, 3: 1/3}[house];
+  const upper = house === 11 || house === 12;
+  let ra = armc + (upper ? frac * 90 : 180 - frac * 90);
+  for (let k = 0; k < 100; k++) {
+    const dec = Math.asin(Math.sin(e) * Math.sin(lonFromRa(ra, e)));
+    const ad = Math.asin(Math.max(-1, Math.min(1, Math.tan(f) * Math.tan(dec)))) * R2D;
+    const nw = upper ? armc + frac * (90 + ad) : armc + 180 - frac * (90 - ad);
+    if (Math.abs(nw - ra) < 1e-10) { ra = nw; break; }
+    ra = nw;
+  }
+  return norm(lonFromRa(ra, e) * R2D);
+}
+function calcHouses(jd, lat, lon) {
+  const eps = interp("eps", jd);
+  const st = gmst82Hours(jd) + interp("stcorr", jd) / 3600;
+  const armc = norm(st * 15 + lon);
+  const r = armc * D2R, e = eps * D2R, f = lat * D2R;
+  const mc = norm(Math.atan2(Math.sin(r), Math.cos(r) * Math.cos(e)) * R2D);
+  let asc = norm(Math.atan2(Math.cos(r), -(Math.sin(r) * Math.cos(e) + Math.tan(f) * Math.sin(e))) * R2D);
+  // За полярным кругом формула может дать заходящую точку: асцендент должен восходить
+  // (часовой угол точки эклиптики в восточной половине неба, sin H < 0)
+  {
+    const l = asc * D2R, ra = Math.atan2(Math.sin(l) * Math.cos(e), Math.cos(l));
+    if (Math.sin(r - ra) > 0) asc = norm(asc + 180);
+  }
+  const c = new Array(12);
+  c[0] = asc; c[9] = mc;
+  const warnings = [];
+  let system = "Плацидус";
+  if (Math.abs(lat) >= 90 - eps) {
+    system = "Порфирий";
+    warnings.push(`Широта ${lat.toFixed(2)}° за полярным кругом: система Плацидуса здесь не определена, дома рассчитаны по системе Порфирия.`);
+    const a1 = norm(asc - mc), a2 = norm(mc + 180 - asc);
+    c[10] = norm(mc + a1 / 3); c[11] = norm(mc + 2 * a1 / 3);
+    c[1] = norm(asc + a2 / 3); c[2] = norm(asc + 2 * a2 / 3);
+  } else {
+    for (const h of [11, 12, 2, 3]) c[h - 1] = placidusCusp(armc, lat, eps, h);
+  }
+  c[3] = norm(mc + 180); c[6] = norm(asc + 180);
+  c[4] = norm(c[10] + 180); c[5] = norm(c[11] + 180); c[7] = norm(c[1] + 180); c[8] = norm(c[2] + 180);
+  return { cusps: c, asc, mc, armc, eps, system, warnings };
+}
+function houseOf(cusps, lon) {
+  lon = norm(lon);
+  for (let i = 0; i < 12; i++) {
+    const span = norm(cusps[(i + 1) % 12] - cusps[i]);
+    if (norm(lon - cusps[i]) < span) return i + 1;
+  }
+  return 12;
+}
+
+/* ---------- Аспекты ---------- */
+// Шаг (сутки) для «сходящийся/расходящийся»: ~1 с, чтобы Луна не проскочила точный аспект
+const DT_APP = 1e-5;
+function findAspects(pl, prof = "natal") {
+  const out = [];
+  for (let i = 0; i < pl.length; i++) for (let j = i + 1; j < pl.length; j++) {
+    const p = pl[i], q = pl[j], dist = adist(p.lon, q.lon);
+    if ((p.key === "asc" && q.key === "mc") || (p.key === "mc" && q.key === "asc")) continue;
+    for (const [key, name, glyph, angle, kind] of ASPECTS) {
+      if (!ORBSET[prof].on[key]) continue;
+      const lim = pairOrb(key, p.key, q.key, prof);
+      const delta = Math.abs(dist - angle);
+      if (delta <= lim) {
+        const later = Math.abs(adist(p.lon + p.speed * DT_APP, q.lon + q.speed * DT_APP) - angle);
+        out.push({ a: p, b: q, key, name, glyph, angle, kind, orb: delta, applying: later < delta });
+        break;
+      }
+    }
+  }
+  // сначала мажорные аспекты, потом минорные; внутри групп по орбису
+  return out.sort((x, y) => (MAJOR.has(y.key) - MAJOR.has(x.key)) || Math.round(x.orb * 1e4) - Math.round(y.orb * 1e4));
+}
+
+// Аспекты между двумя наборами точек: транзиты к наталу (outer = транзитные планеты) и синастрия.
+// Орбис пары — больший из орбисов двух точек по таблице вида карты (решение Kate).
+// moving: сходящийся/расходящийся считается только для транзитов (натальные точки неподвижны).
+function findCrossAspects(inner, outer, prof, moving = true) {
+  const out = [];
+  for (const q of outer) for (const p of inner) {
+    const dist = adist(p.lon, q.lon);
+    for (const [key, name, glyph, angle, kind] of ASPECTS) {
+      if (!ORBSET[prof].on[key]) continue;
+      const delta = Math.abs(dist - angle);
+      if (delta <= pairOrb(key, q.key, p.key, prof)) {
+        const later = moving ? Math.abs(adist(p.lon, q.lon + q.speed * DT_APP) - angle) : null;
+        out.push({ a: q, b: p, key, name, glyph, angle, kind, orb: delta, applying: moving ? later < delta : null, cross: true });
+        break;
+      }
+    }
+  }
+  return out.sort((x, y) => (MAJOR.has(y.key) - MAJOR.has(x.key)) || Math.round(x.orb * 1e4) - Math.round(y.orb * 1e4));
+}
+
+/* ---------- Время: IANA через Intl ---------- */
+const dtfCache = new Map();
+function dtf(tz) {
+  if (!dtfCache.has(tz)) dtfCache.set(tz, new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hourCycle: "h23", era: "short", year: "numeric", month: "numeric",
+    day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" }));
+  return dtfCache.get(tz);
+}
+function utcMsOf(y, mo, d, h, mi, s) {
+  const dt = new Date(Date.UTC(2000, mo - 1, d, h, mi, s));
+  dt.setUTCFullYear(y);
+  return dt.getTime();
+}
+let TZX = { lmtRanges: {}, backzone: {}, cutoff: 0, links: {} };
+function backzoneEntry(utcMs, tz) {
+  const bz = TZX.backzone[tz];
+  if (!bz || utcMs >= TZX.cutoff * 1000) return null;
+  let e = bz[0];
+  for (let i = 1; i < bz.length && bz[i][0] * 1000 <= utcMs; i++) e = bz[i];
+  return e;
+}
+const dtfLong = new Map();
+function isDstAt(utcMs, tz, fallback) {
+  const e = backzoneEntry(utcMs, tz);
+  if (e) return !!e[2];
+  try {
+    if (!dtfLong.has(tz)) dtfLong.set(tz, new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "long" }));
+    const name = (dtfLong.get(tz).formatToParts(new Date(utcMs)).find(x => x.type === "timeZoneName") || {}).value || "";
+    if (/Summer|Daylight|War|Peace/i.test(name)) return true;
+    if (/Standard|Time$/i.test(name)) return false;
+  } catch { /* старые браузеры */ }
+  return fallback;
+}
+function offsetMs(utcMs, tz) {
+  const bze = backzoneEntry(utcMs, tz);
+  if (bze) return bze[1] * 1000;
+  const t = Math.floor(utcMs / 1000) * 1000;
+  const p = {};
+  for (const x of dtf(tz).formatToParts(new Date(t))) p[x.type] = x.value;
+  let y = +p.year; if (/^B/.test(p.era)) y = 1 - y;
+  return utcMsOf(y, +p.month, +p.day, +p.hour % 24, +p.minute, +p.second) - t;
+}
+function fmtOffset(ms) {
+  const tot = Math.round(ms / 1000), sg = tot < 0 ? "−" : "+", a = Math.abs(tot);
+  const h = Math.floor(a / 3600), m = Math.floor(a % 3600 / 60), s = a % 60;
+  return `UTC${sg}${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}` + (s ? `:${String(s).padStart(2,"0")}` : "");
+}
+function parseOffset(text) {
+  const m = /^\s*(?:UTC|GMT)?\s*([+\-−])?\s*(\d{1,2})(?::?(\d{2}))?\s*$/i.exec(text);
+  if (!m) throw new Error(`Не удалось разобрать смещение «${text}». Пример: +03:00`);
+  const h = +m[2], mi = +(m[3] || 0);
+  if (h > 14 || mi >= 60) throw new Error(`Некорректное смещение «${text}»`);
+  return (m[1] === "-" || m[1] === "−" ? -1 : 1) * (h * 3600 + mi * 60) * 1000;
+}
+const pad = n => String(n).padStart(2, "0");
+function fmtWall(w) { return `${pad(w.d)}.${pad(w.mo)}.${w.y} ${pad(w.h)}:${pad(w.mi)}`; }
+
+function localToUtc(w, tz, { fold = 0, strict = true, longitude = null } = {}) {
+  tz = (TZX.links && TZX.links[tz]) || tz;   // устаревшие имена: Europe/Kiev -> Europe/Kyiv
+  const wall = utcMsOf(w.y, w.mo, w.d, w.h, w.mi, w.s);
+  const offs = [...new Set([offsetMs(wall - 864e5 / 2, tz), offsetMs(wall, tz), offsetMs(wall + 864e5 / 2, tz)])];
+  const valid = [];
+  for (const o of offs) { const u = wall - o; if (offsetMs(u, tz) === o && !valid.some(v => v.utc === u)) valid.push({ utc: u, off: o }); }
+  valid.sort((a, b) => a.utc - b.utc);
+  const warnings = [];
+  let chosen, probe = null, ask = null;  // probe — момент для признака летнего времени
+  if (valid.length === 1) chosen = valid[0];
+  else if (valid.length >= 2) {
+    chosen = valid[fold ? valid.length - 1 : 0];
+    ask = { kind: "ambiguous", wall: fmtWall(w), tz, first: valid[0].off, second: valid[valid.length - 1].off, fold: fold ? 1 : 0 };
+  } else {
+    const before = offsetMs(wall - 864e5 / 2, tz), after = offsetMs(wall + 864e5 / 2, tz);
+    ask = { kind: "gap", wall: fmtWall(w), tz, before, after, accepted: !strict };
+    if (strict) throw Object.assign(new Error(`Времени ${fmtWall(w)} в поясе ${tz} не было: часы переводили вперёд.`), { ask });
+    chosen = { utc: wall - before, off: before };
+    probe = wall - 864e5 / 2 - before;  // смещение до перехода — и признак тоже до перехода
+  }
+  // Местное среднее время места рождения:
+  //  * до конца LMT пояса (время до введения любого законного времени);
+  //  * в поясах бывшей Российской империи — до 01.07.1919: среднее время опорного
+  //    города (MMT, KMT…) фактически действовало только в нём.
+  // Законное среднее время другого города (парижское PMT во Франции) не заменяется.
+  let tzLabel = tz, lmt = false, dst = false;
+  const inLmt = (TZX.lmtRanges[tz] || []).some(([a, b]) => (a === null || chosen.utc >= a * 1000) && chosen.utc < b * 1000);
+  const ru = RU_ZONES.has(tz) && wall < utcMsOf(1919, 7, 1, 0, 0, 0);
+  if (longitude !== null && (inLmt || ru)) {
+    const mean = offsetMs(utcMsOf(1800, 1, 1, 12, 0, 0), tz);
+    let shift = ru ? Math.round((chosen.off - mean) / 1800000) * 1800000 : 0;
+    if (shift < 0) shift = 0;
+    const own = Math.round(longitude * 240) * 1000 + shift;
+    warnings.push(`Дата раньше введения поясного времени (${tz}): использовано местное среднее время места рождения ${fmtOffset(own)}${shift ? " с учётом перевода часов" : ""} (в базе для пояса ${fmtOffset(chosen.off)}).`);
+    chosen = { utc: wall - own, off: own };
+    tzLabel = `местное среднее время (${longitude.toFixed(2)}°)`;
+    lmt = true; dst = shift > 0;
+  } else {
+    // Если браузер не знает названия пояса (GMT−04:00), летнее время — смещение
+    // больше стандартного за соседние годы (военное время США 1942–1945)
+    let std = Infinity;
+    for (let yy = w.y - 2; yy <= w.y + 2; yy++)
+      for (const mm of [1, 7]) std = Math.min(std, offsetMs(utcMsOf(yy, mm, 15, 12, 0, 0), tz));
+    // Смена поясного времени (Иркутск 1922, Калькутта 1906) даёт сдвиг на минуты,
+    // а перевод часов — на кратное получасу
+    dst = isDstAt(probe ?? chosen.utc, tz, chosen.off > std && (chosen.off - std) % 1800000 === 0);
+  }
+  return { utc: chosen.utc, off: chosen.off, tz: tzLabel, dst, lmt, warnings, ask };
+}
+
+// Пояса бывшей Российской империи / СССР (то же правило, что в Python-версии)
+const RU_ZONES = new Set(`Europe/Moscow Europe/Simferopol Europe/Kyiv Europe/Kiev Europe/Minsk Europe/Vilnius
+Europe/Riga Europe/Tallinn Europe/Chisinau Europe/Volgograd Europe/Kirov Europe/Astrakhan
+Europe/Saratov Europe/Ulyanovsk Europe/Samara Asia/Yekaterinburg Asia/Omsk Asia/Novosibirsk
+Asia/Barnaul Asia/Tomsk Asia/Novokuznetsk Asia/Krasnoyarsk Asia/Irkutsk Asia/Chita
+Asia/Yakutsk Asia/Khandyga Asia/Vladivostok Asia/Ust-Nera Asia/Magadan Asia/Sakhalin
+Asia/Srednekolymsk Asia/Kamchatka Asia/Anadyr Asia/Tbilisi Asia/Baku Asia/Yerevan
+Asia/Almaty Asia/Qostanay Asia/Qyzylorda Asia/Aqtobe Asia/Aqtau Asia/Atyrau Asia/Oral
+Asia/Tashkent Asia/Samarkand Asia/Bishkek Asia/Dushanbe Asia/Ashgabat`.split(/\s+/));
+
+/* ---------- Старый стиль ---------- */
+function julianToGregorian(y, m, d) {
+  const a = Math.floor((14 - m) / 12), yy = y + 4800 - a, mm = m + 12 * a - 3;
+  const jdn = d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - 32083;
+  // JDN -> григорианская дата
+  const A = jdn + 32044, B = Math.floor((4 * A + 3) / 146097), C = A - Math.floor(146097 * B / 4);
+  const D = Math.floor((4 * C + 3) / 1461), E = C - Math.floor(1461 * D / 4), M = Math.floor((5 * E + 2) / 153);
+  return { y: 100 * B + D - 4800 + Math.floor(M / 10), mo: M + 3 - 12 * Math.floor(M / 10), d: E - Math.floor((153 * M + 2) / 5) + 1 };
+}
+
+/* ---------- Города ---------- */
+let CITIES = null;
+const regionName = (() => { try { const d = new Intl.DisplayNames(["ru"], { type: "region" }); return cc => { try { return d.of(cc) || cc; } catch { return cc; } }; } catch { return cc => cc; } })();
+const fold = s => s.toLocaleLowerCase("ru").replace(/ё/g, "е").replace(/[\s\-–‑]+/g, " ").trim();
+function prepCities(raw) {
+  const rows = raw.rows.map(r => {
+    const ru = r[1] ? r[1].split("|") : [];
+    return { en: r[0], ru, cc: r[2], lat: r[3], lon: r[4], tz: raw.zones[r[5]], pop: r[6],
+      keys: [r[0], ...ru].map(fold) };
+  });
+  return rows;
+}
+function searchCities(q, limit = 8) {
+  const k = fold(q);
+  if (k.length < 2) return [];
+  const exact = [], pref = [], part = [];
+  for (const c of CITIES) {
+    let best = 9;
+    for (const key of c.keys) {
+      if (key === k) { best = 0; break; }
+      if (key.startsWith(k)) best = Math.min(best, 1);
+      else if (k.length >= 4 && key.includes(k)) best = Math.min(best, 2);
+    }
+    if (best === 0) exact.push(c); else if (best === 1) pref.push(c); else if (best === 2) part.push(c);
+  }
+  const byPop = (a, b) => b.pop - a.pop;
+  return [...exact.sort(byPop), ...pref.sort(byPop), ...part.sort(byPop)].slice(0, limit);
+}
+function cityLabel(c, q = "") {
+  // Русские названия в базе GeoNames не помечены языком, поэтому показываем
+  // то, которое совпало с запросом, а при поиске латиницей — английское.
+  const k = fold(q);
+  if (!/[а-я]/.test(k)) return c.en;
+  // среди совпавших берём написание с дефисом («Санкт-Петербург», а не «Санкт Петербург»)
+  const pickOf = test => { const m = c.ru.filter(test); return m.find(n => n.includes("-")) || m[0]; };
+  return pickOf(n => fold(n) === k) || pickOf(n => fold(n).startsWith(k)) || pickOf(n => fold(n).includes(k)) || c.en;
+}
+// Малые пояса, где нет городов из базы: [пояс, широта от, до, долгота от, до]
+const TZ_BOXES = [
+  ["Australia/Lord_Howe", -31.9, -31.3, 158.9, 159.4],
+  ["Asia/Srednekolymsk", 49.5, 51.6, 154.0, 157.5],   // Северные Курилы
+  ["Pacific/Chatham", -44.6, -43.4, -177.2, -175.8],
+  ["Pacific/Norfolk", -29.3, -28.9, 167.8, 168.1],
+];
+function nearestCities(lat, lon, k) {
+  const best = [];
+  for (const c of CITIES) {
+    const p1 = lat * D2R, p2 = c.lat * D2R, dl = (c.lon - lon) * D2R;
+    const km = 6371 * Math.acos(Math.min(1, Math.sin(p1) * Math.sin(p2) + Math.cos(p1) * Math.cos(p2) * Math.cos(dl)));
+    if (best.length < k || km < best[best.length - 1].km) {
+      best.push({ c, km }); best.sort((a, b) => a.km - b.km); if (best.length > k) best.pop();
+    }
+  }
+  return best;
+}
+function nearestCity(lat, lon) {
+  let best = null, bd = Infinity;
+  const cl = Math.cos(lat * D2R);
+  for (const c of CITIES) {
+    const dy = c.lat - lat, dx = norm(c.lon - lon + 180) - 180;
+    const d = dy * dy + dx * dx * cl * cl;
+    if (d < bd) { bd = d; best = c; }
+  }
+  return best;
+}
+
+/* ---------- Форматирование ---------- */
+function fmtDeg(lon, withSign = true) {
+  lon = norm(lon);
+  let sec = Math.round((lon % 30) * 3600);
+  if (sec >= 30 * 3600) sec = 30 * 3600 - 1;
+  const d = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  const t = `${d}°${pad(m)}′${pad(s)}″`;
+  return withSign ? `${t} ${SIGNS[Math.floor(lon / 30)]}` : t;
+}
+function fmtOrb(x) { let d = Math.floor(x), m = Math.round((x - d) * 60); if (m === 60) { d++; m = 0; } return `${d}°${pad(m)}′`; }
+
+/* ---------- Символ Плутона (круг над чашей и крестом) ---------- */
+function plutoPaths(x, y, k) {   // k — размер символа
+  const r = 0.16 * k, cy = y - 0.27 * k, cr = 0.3 * k, cupY = y - 0.38 * k;
+  return `<circle cx="${(x).toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}"/>` +
+    `<path d="M${(x - cr).toFixed(2)} ${cupY.toFixed(2)} A${cr.toFixed(2)} ${cr.toFixed(2)} 0 0 0 ${(x + cr).toFixed(2)} ${cupY.toFixed(2)}` +
+    ` M${x.toFixed(2)} ${(cupY + cr).toFixed(2)} V${(y + 0.5 * k).toFixed(2)}` +
+    ` M${(x - 0.17 * k).toFixed(2)} ${(y + 0.3 * k).toFixed(2)} H${(x + 0.17 * k).toFixed(2)}"/>`;
+}
+const PLUTO_ICON = `<svg viewBox="-10 -10 20 20" aria-label="Плутон"><g class="pluto">${plutoPaths(0, 0, 18)}</g></svg>`;
+const glyphHtml = p => p.key === "pluto" ? PLUTO_ICON : `${p.glyph}${VS15}`;
+
+/* ---------- Карта ---------- */
+function buildChart(input) {
+  const { w, lat, lon, place } = input;
+  let t;
+  if (input.offset !== null) {
+    const wall = utcMsOf(w.y, w.mo, w.d, w.h, w.mi, w.s);
+    t = { utc: wall - input.offset, off: input.offset, tz: "заданное смещение", dst: false, warnings: [] };
+  } else {
+    t = localToUtc(w, input.tz, { fold: input.fold, strict: input.strict, longitude: lon });
+  }
+  return chartCore(input, t);
+}
+// Карта на известный момент t.utc (натал, соляр, лунар)
+function chartCore(input, t) {
+  const { w, lat, lon, place } = input;
+  const jd = t.utc / 864e5 + 2440587.5;
+  const planets = planetPositions(jd);
+  const notes = [...(input.notes || [])];
+  let houses = null, points = planets;
+  if (input.unknown) {
+    // Время неизвестно: карта на полдень, без домов; Луна за сутки проходит ~12–15°
+    const m0 = interp("moon", jd - 0.5), m1 = interp("moon", jd + 0.5 - 1 / 1440);
+    notes.unshift(`Время рождения неизвестно: карта построена на 12:00 местного времени, без домов и асцендента. Луна в этот день проходит от ${fmtDeg(m0)} до ${fmtDeg(m1)}` +
+      (Math.floor(m0 / 30) !== Math.floor(m1 / 30) ? ": за сутки она меняет знак, поэтому знак Луны без времени рождения не определён." : "."));
+  } else {
+    houses = calcHouses(jd, lat, lon);
+    for (const p of planets) p.house = houseOf(houses.cusps, p.lon);
+    points = [...planets, { key: "asc", name: "Асцендент", glyph: "AC", lon: houses.asc, speed: 0 },
+      { key: "mc", name: "MC", glyph: "MC", lon: houses.mc, speed: 0 }];
+  }
+  const aspects = findAspects(points);
+  return { name: input.name, place, lat, lon, w, t, jd, planets, points, houses, aspects, unknown: !!input.unknown,
+    warnings: [...notes, ...t.warnings, ...(houses ? houses.warnings : [])] };
+}
+
+// opt.outer — планеты второй карты (транзиты, человек B) на внешнем кольце; opt.aspects — аспекты для линий
+let WHEEL_FROM = lsGet("natal-wheel") === "aries" ? "aries" : "asc";   // ориентация круга: от асцендента или от 0° Овна
+const HN_R = -10;   // римские номера домов внутри круга аспектов: снаружи они налезали на градусы планет
+function renderSvg(ch, size = 600, opt = {}) {
+  const cx = size / 2, cy = size / 2, s = size / 640, dbl = !!opt.outer;
+  const R_OUT = 278 * s, R_SIGN = 240 * s, R_HOUSE = (dbl ? 186 : 210) * s, R_PL = (dbl ? 160 : 180) * s, R_ASP = (dbl ? 106 : 128) * s;
+  const R_OPL = 214 * s;   // символы внешней карты
+  const GS = dbl ? 0.86 : 1;   // символы на двойном круге чуть меньше
+  const aspects = opt.aspects || ch.aspects;
+  // данные для полноэкранного режима: какая точка и какие аспекты к ней
+  const aspData = a => ` data-p1="${dbl ? "o" : "i"}:${a.a.key}" data-p2="i:${a.b.key}"`;
+  const ptInfo = (p, tag) => `${tag ? tag + " " : ""}${p.name} · ${fmtDeg(p.lon)}${p.speed < 0 ? " R" : ""}${ch.houses ? ` · ${ROMAN[houseOf(ch.houses.cusps, p.lon) - 1]} дом` : ""}`;
+  const asc = ch.houses && WHEEL_FROM !== "aries" ? ch.houses.asc : 0;   // слева асцендент или 0° Овна (настройка); без домов — 0° Овна
+  const pt = (lon, r) => { const th = (180 + lon - asc) * D2R; return [cx + r * Math.cos(th), cy - r * Math.sin(th)]; };
+  const f = n => n.toFixed(2);
+  const line = (a, b, cls, extra = "") => `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" class="${cls}"${extra}/>`;
+  const MX = 84 * s, MY = 30 * s;   // поля для подписей куспидов за кругом
+  const o = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${f(-MX)} ${f(-MY)} ${f(size + 2 * MX)} ${f(size + 2 * MY)}" role="img" aria-label="${dbl ? "Двойной круг" : "Круг натальной карты"}">`];
+  o.push(`<circle cx="${cx}" cy="${cy}" r="${R_OUT}" class="w-band"/>`, `<circle cx="${cx}" cy="${cy}" r="${R_SIGN}" class="w-face"/>`,
+    `<circle cx="${cx}" cy="${cy}" r="${R_HOUSE}" class="w-thin"/>`, `<circle cx="${cx}" cy="${cy}" r="${R_ASP}" class="w-thin"/>`);
+  for (let i = 0; i < 12; i++) {
+    const a1 = pt(i * 30, R_OUT), a2 = pt(i * 30 + 30, R_OUT), b2 = pt(i * 30 + 30, R_SIGN), b1 = pt(i * 30, R_SIGN);
+    o.push(`<path class="sec${i % 4}" d="M${f(a1[0])} ${f(a1[1])} A${f(R_OUT)} ${f(R_OUT)} 0 0 0 ${f(a2[0])} ${f(a2[1])} L${f(b2[0])} ${f(b2[1])} A${f(R_SIGN)} ${f(R_SIGN)} 0 0 1 ${f(b1[0])} ${f(b1[1])} Z"/>`);
+  }
+  o.push(`<circle cx="${cx}" cy="${cy}" r="${R_OUT}" fill="none" class="w-line"/>`, `<circle cx="${cx}" cy="${cy}" r="${R_SIGN}" fill="none" class="w-line"/>`);
+  for (let i = 0; i < 12; i++) {
+    o.push(line(pt(i * 30, R_SIGN), pt(i * 30, R_OUT), "w-line"));
+    const g = pt(i * 30 + 15, (R_OUT + R_SIGN) / 2);
+    o.push(`<text x="${f(g[0])}" y="${f(g[1])}" class="w-sign el${i % 4}" text-anchor="middle" dominant-baseline="central"><title>${SIGNS[i]}</title>${SIGN_GLYPHS[i]}${VS15}</text>`);
+  }
+  for (let d = 0; d < 360; d++) {
+    if (d % 30 === 0) continue;
+    const ln = d % 10 === 0 ? 8 : d % 5 === 0 ? 5 : 3;
+    o.push(line(pt(d, R_SIGN), pt(d, R_SIGN + ln * s), "w-tick"));
+  }
+  const c = ch.houses ? ch.houses.cusps : [];
+  for (let i = 0; i < c.length; i++) {
+    const axis = i % 3 === 0;
+    o.push(line(pt(c[i], R_ASP), pt(c[i], R_OUT + (axis ? 14 * s : 0)), axis ? "w-axis" : "w-cusp"));
+    const mid = c[i] + norm(c[(i + 1) % 12] - c[i]) / 2;
+    const n = pt(mid, R_ASP + HN_R * s);
+    o.push(`<text x="${f(n[0])}" y="${f(n[1])}" class="w-hn" text-anchor="middle" dominant-baseline="central"><title>${ROMAN[i]} дом</title>${ROMAN[i]}</text>`);
+  }
+  // Градусы куспидов за кругом, точно на продолжении линии куспида; у осей вместе с подписью оси
+  const AX = { 0: "ASC", 3: "IC", 6: "DSC", 9: "MC" };
+  for (let i = 0; i < c.length; i++) {
+    const axis = i % 3 === 0, th = (180 + c[i] - asc) * D2R, cs = Math.cos(th), sn = Math.sin(th);
+    const p = pt(c[i], R_OUT + (axis ? 18 : 6) * s);
+    const anchor = cs > 0.35 ? "start" : cs < -0.35 ? "end" : "middle";
+    const base = sn > 0.35 ? "auto" : sn < -0.35 ? "hanging" : "central";
+    const si = Math.floor(norm(c[i]) / 30), tot = Math.round((norm(c[i]) % 30) * 60);
+    const dg = Math.floor(tot / 60) % 30, mn = tot % 60;
+    o.push(`<g><title>Куспид ${i + 1}-го дома: ${fmtDeg(c[i])}</title><text x="${f(p[0])}" y="${f(p[1])}" class="w-cl${axis ? " ax" : ""}" text-anchor="${anchor}" dominant-baseline="${base}">${axis ? `<tspan class="axn">${AX[i]}</tspan> ` : ""}${dg}°${String(mn).padStart(2, "0")}′<tspan class="gl el${si % 4}">${SIGN_GLYPHS[si]}${VS15}</tspan></text></g>`);
+  }
+  for (const a of aspects) {
+    if (a.key === "conjunction") continue;   // соединения рисуются дугой у символов, ниже
+    const dash = ["quincunx","semisextile","sesquiquadrate"].includes(a.key) ? ' stroke-dasharray="2 3"' : "";
+    const wdt = Math.max(0.5, 1.8 - a.orb / 4);
+    o.push(line(pt(a.a.lon, R_ASP), pt(a.b.lon, R_ASP), `a-${a.kind} w-asp`, ` stroke-width="${wdt.toFixed(2)}" opacity="0.85"${dash}${aspData(a)}`));
+  }
+  const disp = spread(ch.planets.map(p => p.lon), dbl ? 10 : 9);
+  // Соединения: фиолетовая дуга по кольцу домов строго между градусами двух точек,
+  // метки градусов этих планет и обводка их символов тоже фиолетовые
+  const inConj = new Set();
+  for (const a of aspects) {
+    if (a.key !== "conjunction") continue;
+    inConj.add(a.a); inConj.add(a.b);
+    const [l1, l2] = norm(a.b.lon - a.a.lon) <= 180 ? [a.a.lon, a.b.lon] : [a.b.lon, a.a.lon];
+    const r = R_HOUSE - 3 * s, p1 = pt(l1, r), p2 = pt(l2, r);
+    o.push(`<path d="M${f(p1[0])} ${f(p1[1])} A${f(r)} ${f(r)} 0 0 0 ${f(p2[0])} ${f(p2[1])}" class="w-conj w-asp"${aspData(a)}><title>${esc(a.a.name)} — соединение — ${esc(a.b.name)}, орбис ${fmtOrb(a.orb)}</title></path>`);
+  }
+  // Ретроградность: маленькая «R» у правого нижнего края символа планеты
+  const retroMark = (g, r) => `<text x="${f(g[0] + r * 0.78)}" y="${f(g[1] + r * 0.72)}" class="w-retro" text-anchor="middle" dominant-baseline="central">R</text>`;
+  const retro = [];   // «R» рисуются поверх всех символов
+  ch.planets.forEach((p, i) => {
+    const d = disp[i];
+    const cj = inConj.has(p);
+    o.push(line(pt(p.lon, R_HOUSE), pt(p.lon, R_HOUSE - 6 * s), cj ? "w-mark w-mark-conj" : "w-mark"));
+    const g = pt(d, R_PL);
+    o.push(line(pt(p.lon, R_HOUSE - 6 * s), g, "w-lead"));
+    o.push(`<g data-pt="i:${p.key}" data-info="${esc(ptInfo(p, ""))}"><title>${esc(p.name)}: ${fmtDeg(p.lon)}${p.speed < 0 ? ", ретроградный" : ""}</title><circle cx="${f(g[0])}" cy="${f(g[1])}" r="${f(15 * s * GS)}" class="w-pl-bg${cj ? " w-pl-conj" : ""}"/>` +
+      (p.key === "pluto"
+        ? `<g class="pluto w-pl-svg">${plutoPaths(g[0], g[1], 22 * s * GS)}</g></g>`
+        : `<text x="${f(g[0])}" y="${f(g[1])}" class="w-pl" text-anchor="middle" dominant-baseline="central"${dbl ? ` style="font-size:${(25 * GS).toFixed(1)}px"` : ""}>${p.glyph}${VS15}</text></g>`));
+    if (p.speed < 0) retro.push(retroMark(g, 15 * s * GS));
+    const dl = pt(d, R_PL - (dbl ? 24 : 26) * s);
+    o.push(`<text x="${f(dl[0])}" y="${f(dl[1])}" class="w-deg" text-anchor="middle" dominant-baseline="central">${Math.floor(p.lon % 30)}°</text>`);
+  });
+  if (dbl) {
+    // Внешнее кольцо: вторая карта. Метка градуса у знаков, символ и градус в кольце
+    const dispO = spread(opt.outer.map(p => p.lon), 10);   // внешнее кольцо: шаг больше, чтобы подписи градусов не наползали
+    opt.outer.forEach((p, i) => {
+      const d = dispO[i], cj = inConj.has(p);
+      o.push(line(pt(p.lon, R_SIGN), pt(p.lon, R_SIGN - 6 * s), cj ? "w-mark w-mark-conj" : "w-mark"));
+      const g = pt(d, R_OPL);
+      o.push(line(pt(p.lon, R_SIGN - 6 * s), g, "w-lead"));
+      o.push(`<g data-pt="o:${p.key}" data-info="${esc(ptInfo(p, opt.outerLabel || ""))}"><title>${esc(opt.outerLabel || "")} ${esc(p.name)}: ${fmtDeg(p.lon)}${p.speed < 0 ? ", ретроградный" : ""}</title><circle cx="${f(g[0])}" cy="${f(g[1])}" r="${f(13 * s)}" class="w-pl-bg w-pl-out${cj ? " w-pl-conj" : ""}"/>` +
+        (p.key === "pluto"
+          ? `<g class="pluto w-pl-svg w-out">${plutoPaths(g[0], g[1], 19 * s)}</g></g>`
+          : `<text x="${f(g[0])}" y="${f(g[1])}" class="w-pl w-out" text-anchor="middle" dominant-baseline="central" style="font-size:${p.key === "asc" || p.key === "mc" ? "11px;font-family:var(--f-body)" : "21px"}">${p.glyph}${p.key === "asc" || p.key === "mc" ? "" : VS15}</text></g>`));
+      if (p.speed < 0) retro.push(retroMark(g, 13 * s));
+      const dl = pt(d, R_OPL - 22 * s);
+      o.push(`<text x="${f(dl[0])}" y="${f(dl[1])}" class="w-deg w-deg-o" text-anchor="middle" dominant-baseline="central">${Math.floor(p.lon % 30)}°</text>`);
+    });
+  }
+  o.push(...retro);
+  o.push("</svg>");
+  return o.join("");
+}
+// Раздвигает символы по кругу не меньше чем на gap градусов: группы близких точек
+// центрируются на среднем истинных долгот (раньше простая релаксация не сходилась на скоплениях)
+function spread(lons, gap) {
+  const n = lons.length;
+  if (n < 2) return lons.map(norm);
+  gap = Math.min(gap, 360 / n);
+  const order = [...lons.keys()].sort((a, b) => norm(lons[a]) - norm(lons[b]));
+  const v = order.map(i => norm(lons[i]));
+  // начинаем после самого большого промежутка, чтобы скопление не разрывалось на 0°
+  let big = 0, bigGap = -1;
+  for (let k = 0; k < n; k++) { const g = norm(v[(k + 1) % n] - v[k]) || (n === 1 ? 360 : 0); if (g > bigGap) { bigGap = g; big = (k + 1) % n; } }
+  const x = [];
+  for (let k = 0; k < n; k++) { let val = v[(big + k) % n]; if (k && val < x[k - 1]) val += 360; x.push(val); }
+  let cl = x.map((val, k) => ({ from: k, cnt: 1, sum: val }));
+  const lo = c => c.sum / c.cnt - (c.cnt - 1) / 2 * gap, hi = c => c.sum / c.cnt + (c.cnt - 1) / 2 * gap;
+  for (let merged = true; merged;) {
+    merged = false;
+    for (let k = 0; k + 1 < cl.length; k++) {
+      if (lo(cl[k + 1]) - hi(cl[k]) < gap - 1e-9) {
+        cl[k] = { from: cl[k].from, cnt: cl[k].cnt + cl[k + 1].cnt, sum: cl[k].sum + cl[k + 1].sum };
+        cl.splice(k + 1, 1); merged = true; break;
+      }
+    }
+  }
+  const d = new Array(n);
+  for (const c of cl) for (let m = 0; m < c.cnt; m++) d[order[(big + c.from + m) % n]] = norm(lo(c) + m * gap);
+  return d;
+}
+
+function degSign(p) {
+  const i = Math.floor(norm(p.lon) / 30);
+  return `${fmtDeg(p.lon, false).replace(/(\d+″)$/, '<span class="sec">$1</span>')}<span class="sg el${i % 4}" title="${SIGNS[i]}">${SIGN_GLYPHS[i]}${VS15}</span>${p.speed < 0 ? '<span class="r">R</span>' : ""}`;
+}
+function signCell(lon) {
+  const i = Math.floor(norm(lon) / 30);
+  return `<span class="sd sd${i % 4}" aria-hidden="true"></span>${SIGNS[i]}`;
+}
+function pointGlyph(p) {
+  if (p.key === "asc" || p.key === "mc") return `<span class="ang">${p.glyph}</span>`;
+  return glyphHtml(p);
+}
+// Аспекты: «Список» (по умолчанию) или «Сетка»; выбор запоминается
+let ASP_VIEW = lsGet("natal-asp-view") === "grid" ? "grid" : "list";
+function aspRows(aspects, tagA = "", tagB = "") {
+  const firstMinor = aspects.findIndex(a => !MAJOR.has(a.key));
+  return aspects.map((a, k) => (k === firstMinor ? `<tr class="grp"><td colspan="4">Минорные аспекты</td></tr>` : "") +
+    `<tr title="${esc(tagA)} ${esc(a.a.name)} — ${a.name.toLowerCase()} — ${esc(tagB)} ${esc(a.b.name)}"><td class="ag"><span class="g${tagA ? " out" : ""}">${pointGlyph(a.a)}</span><b class="${a.kind || ""}">${a.glyph}</b><span class="g">${pointGlyph(a.b)}</span></td>` +
+    `<td class="an2">${a.name.toLowerCase()}</td><td class="n">${fmtOrb(a.orb)}</td><td class="muted ap">${a.applying === null || a.applying === undefined ? "" : a.applying ? "сход." : "расх."}</td></tr>`).join("");
+}
+function aspSection(title, gridHtml, aspects, tagA, tagB) {
+  if (!aspects.length) return `<div class="asp-sec"><h2>${title}</h2><p class="hint">Аспектов в пределах орбисов нет.</p></div>`;
+  return `<div class="asp-sec"><div class="asp-head"><h2>${title} <small>${aspects.length}</small></h2>
+      <div class="seg" role="tablist"><button type="button" role="tab" data-av="list" aria-selected="${ASP_VIEW === "list"}">Список</button><button type="button" role="tab" data-av="grid" aria-selected="${ASP_VIEW === "grid"}">Сетка</button></div></div>
+    <div class="tbl scroll-hint asp-grid"${ASP_VIEW === "grid" ? "" : " hidden"}><div class="scroller">${gridHtml}</div></div>
+    <div class="tbl asp-list"${ASP_VIEW === "list" ? "" : " hidden"}><table><tbody>${aspRows(aspects, tagA, tagB)}</tbody></table></div></div>`;
+}
+function aspectGrid(ch) {
+  const pts = ch.points;
+  const idx = new Map(pts.map((p, i) => [p.key, i]));
+  const cell = new Map();
+  for (const a of ch.aspects) {
+    const i = idx.get(a.a.key), j = idx.get(a.b.key);
+    cell.set(`${Math.max(i, j)}:${Math.min(i, j)}`, a);
+  }
+  let html = '<table class="grid-asp"><thead><tr><th></th>' + pts.slice(0, -1).map(p => `<th class="${p.speed === 0 && (p.key === "asc" || p.key === "mc") ? "ang" : ""}" title="${esc(p.name)}">${pointGlyph(p)}</th>`).join("") + "</tr></thead><tbody>";
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i];
+    html += `<tr><th class="${p.key === "asc" || p.key === "mc" ? "ang" : ""}" title="${esc(p.name)}">${pointGlyph(p)}</th>`;
+    for (let j = 0; j < pts.length - 1; j++) {
+      if (j >= i) { html += j === i ? '<td class="x"></td>' : "<td></td>"; continue; }
+      const a = cell.get(`${i}:${j}`);
+      html += a ? `<td class="${a.kind || ""}" title="${esc(a.a.name)} — ${a.name.toLowerCase()} — ${esc(a.b.name)}, орбис ${fmtOrb(a.orb)}"><b>${a.glyph}</b><small>${fmtOrb(a.orb)}</small></td>` : "<td></td>";
+    }
+    html += "</tr>";
+  }
+  return html + "</tbody></table>";
+}
+let LAST_CHART = null;
+let SHOW_MINOR = false;   // минорные аспекты (30°, 135°, 150°) показываются по кнопке
+try { SHOW_MINOR = lsGet("natal-show-minor") === "1"; } catch (e) {}
+let SHOW_ANG = false;     // аспекты к ASC и MC — по кнопке
+let TR_SLOW = false;      // транзиты: только аспекты медленных планет
+let SYN_SEPT = false;     // синастрия: только септенер
+try { SHOW_ANG = lsGet("natal-show-ang") === "1"; TR_SLOW = lsGet("natal-tr-slow") === "1"; SYN_SEPT = lsGet("natal-syn-sept") === "1"; } catch (e) {}
+const isAng = p => p.key === "asc" || p.key === "mc";
+const SLOW = new Set(["jupiter", "saturn", "uranus", "neptune", "pluto"]);
+const SEPTENER = new Set(["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]);
+function toggleBtn(id, on, label) { return `<button type="button" class="pill${on ? " on" : ""}" id="${id}" aria-pressed="${on}">${label}</button>`; }
+function bindToggle(id, get, set, storeKey, after) {
+  const b = $(id); if (!b) return;
+  b.addEventListener("click", () => { const v = !get(); set(v); try { lsSet(storeKey, v ? "1" : "0"); } catch (e) {} after(); });
+}
+let RERENDER = null;   // перерисовать текущий вид после смены орбисов или настроек
+function renderChart(full, example, ret = null) {
+  if (!ret) LAST_CHART = { ch: full, example };
+  RERENDER = () => { full.aspects = findAspects(full.points); renderChart(full, example, ret); };
+  const ch = { ...full, points: full.points.filter(p => SHOW_ANG || !isAng(p)),
+    aspects: full.aspects.filter(a => (SHOW_MINOR || MAJOR.has(a.key)) && (SHOW_ANG || (!isAng(a.a) && !isAng(a.b)))) };
+  const t = ch.t;
+  const utc = new Date(t.utc);
+  const utcStr = `${pad(utc.getUTCDate())}.${pad(utc.getUTCMonth() + 1)}.${utc.getUTCFullYear()} ${pad(utc.getUTCHours())}:${pad(utc.getUTCMinutes())}:${pad(utc.getUTCSeconds())}`;
+  const latS = `${Math.abs(ch.lat).toFixed(4)}° ${ch.lat >= 0 ? "с. ш." : "ю. ш."}`, lonS = `${Math.abs(ch.lon).toFixed(4)}° ${ch.lon >= 0 ? "в. д." : "з. д."}`;
+  const H = !!ch.houses;
+  const rowsP = ch.planets.map(p => `<tr><td class="g pg">${glyphHtml(p)}</td><td class="nm">${esc(p.name)}</td><td class="n">${degSign(p)}</td>${H ? `<td class="n hs">${ROMAN[p.house - 1]}</td>` : ""}</tr>`).join("");
+  const lab = { 0: "ASC", 3: "IC", 6: "DSC", 9: "MC" };
+  const rowsH = H ? ch.houses.cusps.map((c, i) => `<tr><td>${ROMAN[i]}</td><td class="n">${fmtDeg(c, false)}</td><td>${signCell(c)}</td><td class="muted">${lab[i] || ""}</td></tr>`).join("") : "";
+  const savedId = example ? null : findSaved(CUR_STATE);
+  $("out").innerHTML = `
+    <div class="result">
+      <div style="display:grid;gap:12px;min-width:0">
+        <div class="summary">${ret ? ret.head : `
+          ${example ? '<span><b>Пример:</b> введите свои данные выше</span>' : ""}
+          ${ch.name && example ? `<span><b>${esc(ch.name)}</b></span>` : ""}
+          <span><b>${esc(ch.place)}</b> · ${latS}, ${lonS}</span>
+          <span>${ch.unknown ? `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y}, время неизвестно (12:00)` : `${fmtWall(ch.w)}:${pad(ch.w.s)} местное`} · ${esc(t.tz)} · <span class="tag">${fmtOffset(t.off)}</span>${t.dst ? " · летнее время" : ""}</span>
+          <span>UTC <span class="tag">${utcStr}</span></span>
+          ${!example ? "" : H ? `<span>Дома: <b>${ch.houses.system}</b> · ASC <span class="tag">${fmtDeg(ch.houses.asc)}</span> · MC <span class="tag">${fmtDeg(ch.houses.mc)}</span></span>` : "<span>Без домов: время рождения неизвестно</span>"}`}
+        </div>
+        <div class="actions">${ret ? ret.actions : ""}${example || ret ? "" : `<button type="button" class="pill save${savedId ? " done" : ""}" id="saveBtn">${savedId ? "✓ Сохранено" : "＋ Сохранить"}</button>`}
+          ${toggleBtn("minorBtn", SHOW_MINOR, "Минорные")}${H ? toggleBtn("angBtn", SHOW_ANG, "ASC/MC") : ""}</div>
+        ${wheelBox(renderSvg(ch))}
+        <div class="legend"><span><span class="sd sd0"></span>Огонь</span><span><span class="sd sd1"></span>Земля</span><span><span class="sd sd2"></span>Воздух</span><span><span class="sd sd3"></span>Вода</span>
+          <span><span class="ln a-conj-bg"></span>соединения</span><span><span class="ln a-hard-bg"></span>напряжённые</span><span><span class="ln a-soft-bg"></span>гармоничные</span>${SHOW_MINOR ? '<span><span class="ln a-minor-bg"></span>минорные (пунктир)</span>' : ""}</div>
+      </div>
+      <div class="tables">
+        <div><h2>Планеты</h2><div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th>${H ? "<th>Дом</th>" : ""}</tr></thead><tbody>${rowsP}</tbody></table></div></div>
+        ${H ? `<div><h2>Дома</h2><div class="tbl"><table><thead><tr><th>Дом</th><th>Куспид</th><th>Знак</th><th></th></tr></thead><tbody>${rowsH}</tbody></table></div></div>` : ""}
+      </div>
+    </div>
+    ${aspSection("Аспекты", aspectGrid(ch), ch.aspects)}`;
+  if (!ret) { if (example) { FORM_OPEN = true; $("formCard").innerHTML = ""; } else { $("formCard").innerHTML = formCardHtml(ch); FORM_OPEN = false; } syncFormVis(); }
+  $("notes").innerHTML = ret ? ret.notes : (t.ask ? askHtml(t.ask) : "") + ch.warnings.map(w => `<div class="note">${esc(w)}</div>`).join("");
+  if (ret) ret.bind();
+  const sb = $("saveBtn");
+  if (sb) sb.addEventListener("click", () => { saveCurrent(full); });
+  bindToggle("minorBtn", () => SHOW_MINOR, v => SHOW_MINOR = v, "natal-show-minor", () => renderChart(full, example, ret));
+  bindToggle("angBtn", () => SHOW_ANG, v => SHOW_ANG = v, "natal-show-ang", () => renderChart(full, example, ret));
+}
+function askHtml(a) {
+  if (a.kind === "ambiguous") return `<div class="note ask"><p>В ночь на ${a.wall.slice(0, 10)} часы переводили назад, поэтому время ${a.wall.slice(11)} было дважды. Когда был рождён человек?</p>
+    <div class="btns"><button type="button" class="btn${a.fold ? "" : " on"}" data-fold="0">До перевода часов (${fmtOffset(a.first)})</button>
+    <button type="button" class="btn${a.fold ? " on" : ""}" data-fold="1">После перевода часов (${fmtOffset(a.second)})</button></div></div>`;
+  return `<div class="note ask"><p>Времени ${a.wall.slice(11)} ${a.wall.slice(0, 10)} в поясе ${esc(a.tz)} не было: в эту ночь часы переводили вперёд (${fmtOffset(a.before)} → ${fmtOffset(a.after)}). Скорее всего, время записано ещё по старым часам${a.accepted ? ": карта построена со смещением до перевода." : "."}</p>
+    <div class="btns"><button type="button" class="btn${a.accepted ? " on" : ""}" data-gap="1">Считать по часам до перевода (${fmtOffset(a.before)})</button>
+    <button type="button" class="btn" data-fix="1">Исправить время</button></div></div>`;
+}
+function showError(msg) { $("notes").innerHTML = `<div class="note err">${esc(msg)}</div>`; }
+
+/* ---------- Форма ---------- */
+let selected = null, suggItems = [], suggIdx = -1, tzTouched = false;
+function setSelected(c, label) {
+  selected = c ? { label, lat: c.lat, lon: c.lon, tz: c.tz, cc: c.cc } : null;
+  $("chosen").textContent = c ? `${label}, ${regionName(c.cc)} · ${c.lat.toFixed(4)}, ${c.lon.toFixed(4)} · ${c.tz}` : "";
+  if (c) $("tz").value = c.tz;
+}
+function showSugg(list, q) {
+  suggItems = list; suggIdx = -1;
+  const ul = $("sugg");
+  if (!list.length) { ul.hidden = true; $("place").setAttribute("aria-expanded", "false"); return; }
+  ul.innerHTML = list.map((c, i) => `<li role="option"><button type="button" data-i="${i}">${esc(cityLabel(c, q))}<small>${esc(regionName(c.cc))} · ${c.en} · ${c.tz}</small></button></li>`).join("");
+  ul.hidden = false; $("place").setAttribute("aria-expanded", "true");
+}
+function pick(i) {
+  const c = suggItems[i]; if (!c) return;
+  const label = cityLabel(c, $("place").value);
+  $("place").value = label; setSelected(c, label); showSugg([], "");
+}
+function readInput() {
+  const dv = $("date").value, unknown = $("notime").checked, tv = unknown ? "12:00" : $("time").value;
+  if (!dv) throw new Error("Укажите дату рождения.");
+  if (!tv) throw new Error("Укажите время рождения или отметьте «время неизвестно».");
+  let [y, mo, d] = dv.split("-").map(Number);
+  const notes = [];
+  if ($("oldstyle").checked) {
+    const g = julianToGregorian(y, mo, d);
+    notes.push(`Дата ${pad(d)}.${pad(mo)}.${y} по старому стилю = ${pad(g.d)}.${pad(g.mo)}.${g.y} по новому стилю.`);
+    ({ y, mo, d } = g);
+  }
+  const [h, mi, s = 0] = tv.split(":").map(Number);
+  if (y < 1800 || y > 2399) throw new Error("Поддерживаются даты с 1800 по 2399 год.");
+  const latT = $("lat").value.trim().replace(",", "."), lonT = $("lon").value.trim().replace(",", ".");
+  let lat, lon, place, tz;
+  if (latT || lonT) {
+    lat = Number(latT); lon = Number(lonT);
+    if (!latT || !lonT || !isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180)
+      throw new Error("Координаты: широта от −90 до 90, долгота от −180 до 180, например 55.7558 и 37.6173.");
+    place = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    tz = $("tz").value;
+    if (!tzTouched) {
+      const box = TZ_BOXES.find(b => lat >= b[1] && lat <= b[2] && lon >= b[3] && lon <= b[4]);
+      if (box) {
+        tz = box[0];
+        notes.push(`Часовой пояс ${tz} определён по координатам.`);
+      } else {
+        const near = nearestCities(lat, lon, 6);
+        tz = near[0].c.tz;
+        const zones = [...new Set(near.filter(n => n.km <= near[0].km * 2 + 30).map(n => n.c.tz))];
+        notes.push(`Часовой пояс ${tz} взят по ближайшему городу: ${near[0].c.en} (${Math.round(near[0].km)} км).` +
+          (zones.length > 1 ? ` Рядом проходит граница поясов (${zones.join(", ")}): проверьте пояс в списке.`
+            : near[0].km > 100 ? " Город далеко: проверьте пояс в списке." : ""));
+      }
+    }
+  } else {
+    if (!selected) {
+      const q = $("place").value.trim();
+      if (q) { showSugg(searchCities(q), q); if (suggItems.length) $("place").focus(); }
+      throw new Error(q && suggItems.length ? "Выберите город из списка подсказок под полем «Место рождения»: одноимённых городов бывает несколько."
+        : q ? `Город «${q}» не найден. Проверьте название или задайте координаты вручную.` : "Укажите место рождения.");
+    }
+    ({ lat, lon } = selected); place = `${selected.label}, ${regionName(selected.cc)}`;
+    tz = $("tz").value || selected.tz;
+  }
+  if (!$("oldstyle").checked && RU_ZONES.has(tz) && (y < 1918 || (y === 1918 && (mo < 2 || (mo === 2 && d < 14)))))
+    notes.push("До 14.02.1918 в России даты записывали по старому стилю. Если дата взята из документа того времени, отметьте «дата по старому стилю»: разница 12–13 дней.");
+  const offT = $("off").value.trim();
+  return { name: $("name").value.trim(), w: { y, mo, d, h, mi, s }, lat, lon, place, tz,
+    offset: offT ? parseOffset(offT) : null, fold: 0, strict: true, unknown, notes };
+}
+
+function initForm() {
+  const sel = $("tz");
+  let zones = [];
+  try { zones = Intl.supportedValuesOf("timeZone"); } catch { zones = [...new Set(CITIES.map(c => c.tz))].sort(); }
+  sel.innerHTML = zones.map(z => `<option>${z}</option>`).join("");
+  $("place").addEventListener("input", e => { selected = null; $("chosen").textContent = ""; showSugg(searchCities(e.target.value), e.target.value); });
+  $("place").addEventListener("keydown", e => {
+    const ul = $("sugg"); if (ul.hidden) return;
+    const btns = ul.querySelectorAll("button");
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      suggIdx = (suggIdx + (e.key === "ArrowDown" ? 1 : -1) + btns.length) % btns.length;
+      btns.forEach((b, i) => b.classList.toggle("on", i === suggIdx));
+    } else if (e.key === "Enter") { e.preventDefault(); pick(suggIdx >= 0 ? suggIdx : 0); }
+    else if (e.key === "Escape") showSugg([], "");
+  });
+  $("sugg").addEventListener("mousedown", e => e.preventDefault());
+  $("sugg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) pick(+b.dataset.i); });
+  // При начале ввода поле города очищается; если ничего не ввели, прежний город возвращается
+  let placeBefore = null;
+  $("place").addEventListener("focus", e => {
+    if (!e.target.value || !selected) return;   // очищаем только уже выбранный город
+    placeBefore = { value: e.target.value, selected, chosen: $("chosen").textContent };
+    e.target.value = "";
+  });
+  $("place").addEventListener("blur", () => setTimeout(() => {
+    showSugg([], "");
+    if (placeBefore && !$("place").value.trim()) {
+      $("place").value = placeBefore.value; selected = placeBefore.selected; $("chosen").textContent = placeBefore.chosen;
+    }
+    placeBefore = null;
+  }, 150));
+  for (const id of ["lat", "lon"]) $(id).addEventListener("change", () => {
+    const lat = Number($("lat").value.replace(",", ".")), lon = Number($("lon").value.replace(",", "."));
+    if ($("lat").value && $("lon").value && isFinite(lat) && isFinite(lon)) { $("tz").value = nearestCity(lat, lon).tz; tzTouched = false; }
+  });
+  $("tz").addEventListener("change", () => { tzTouched = true; });
+  $("notime").addEventListener("change", e => { $("time").disabled = e.target.checked; });
+  $("form").addEventListener("submit", async e => {
+    e.preventDefault();
+    let input;
+    try { input = readInput(); } catch (err) { showError(err.message); return; }
+    showSugg([], "");
+    CUR_INPUT = input; CUR_STATE = formState();
+    await run(true);
+  });
+  $("notes").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b || !CUR_INPUT) return;
+    if (b.dataset.fold !== undefined) { CUR_INPUT.fold = +b.dataset.fold; CUR_STATE.fold = CUR_INPUT.fold; run(false); }
+    else if (b.dataset.gap) { CUR_INPUT.strict = false; CUR_STATE.strict = false; run(false); }
+    else if (b.dataset.fix) { $("time").focus(); $("form").scrollIntoView({ block: "center" }); }
+  });
+  $("savedList").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const item = loadSaved().find(x => x.id === b.dataset.id);
+    if (!item) return;
+    if (b.classList.contains("more")) { sheetOpen(item); return; }
+    openSaved(item, false);
+  });
+}
+
+/* ---------- Построение ---------- */
+let CUR_INPUT = null, CUR_STATE = null;
+function approxJd(w) { return Date.UTC(w.y, w.mo - 1, w.d, w.h, w.mi) / 864e5 + 2440587.5; }
+async function run(scroll) {
+  const input = CUR_INPUT;
+  const jd = approxJd(input.w);
+  $("go").disabled = true;
+  try {
+    if ([jd - 1.5, jd + 1.5].some(j => !EPH.data.has(chunkIndexFor(j)))) $("notes").innerHTML = '<div class="note">Загружаю таблицы эфемерид для этого века…</div>';
+    await ensureEph([jd - 1.5, jd + 1.5]);
+    const built = buildChart(input);
+    renderChart(built, false);
+    if (EDIT_ID) applyEdit(built);
+    if (scroll) $("out").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  } catch (err) {
+    $("out").innerHTML = "";   // прежняя карта к новым данным не относится
+    if (err.ask) { $("notes").innerHTML = askHtml(err.ask); $("notes").scrollIntoView({ block: "center" }); }
+    else showError(err.message);
+  } finally { $("go").disabled = false; }
+}
+
+/* ---------- Мои карты (localStorage этого браузера) ---------- */
+const STORE_KEY = "natal-charts-v1";
+function loadSaved() { try { return JSON.parse(lsGet(STORE_KEY) || "[]"); } catch { return []; } }
+function storeSaved(list) {
+  const keep = new Set(list.map(x => x.id));
+  for (const x of loadSaved()) if (!keep.has(x.id) && !CLOUD.deleted.includes(x.id)) CLOUD.deleted.push(x.id);
+  CLOUD.deleted = CLOUD.deleted.filter(id => !keep.has(id));
+  try { lsSet(STORE_KEY, JSON.stringify(list)); return true; } catch { return false; }
+}
+function formState() {
+  return { name: $("name").value.trim(), date: $("date").value, time: $("time").value, notime: $("notime").checked,
+    oldstyle: $("oldstyle").checked, place: $("place").value, selected, lat: $("lat").value, lon: $("lon").value,
+    tz: $("tz").value, tzTouched, off: $("off").value, fold: 0, strict: true };
+}
+// Старый стиль в России действовал по 31.01.1918 (дальше сразу 14.02.1918): для поздних дат кнопка неактивна
+function syncOldStyle() {
+  const late = $("date").value > "1918-01-31", cb = $("oldstyle");
+  cb.disabled = late; if (late) cb.checked = false;
+  cb.closest("label").classList.toggle("dis", late);
+}
+function applyFormState(st) {
+  $("name").value = st.name || ""; $("date").value = st.date; $("time").value = st.time || "";
+  $("notime").checked = !!st.notime; $("time").disabled = !!st.notime; $("oldstyle").checked = !!st.oldstyle;
+  $("place").value = st.place || ""; selected = st.selected || null;
+  $("chosen").textContent = selected ? `${selected.label}, ${regionName(selected.cc)} · ${selected.lat.toFixed(4)}, ${selected.lon.toFixed(4)} · ${selected.tz}` : "";
+  $("lat").value = st.lat || ""; $("lon").value = st.lon || ""; $("off").value = st.off || "";
+  if (st.tz) $("tz").value = st.tz; tzTouched = !!st.tzTouched;
+  $("more").open = !!(st.lat || st.off || st.tzTouched);
+  syncOldStyle();
+}
+const stateKey = st => JSON.stringify([st.date, st.notime ? "" : st.time, st.notime, st.oldstyle, st.selected && [st.selected.lat, st.selected.lon], st.lat, st.lon, st.off, st.tzTouched && st.tz, st.fold, st.strict]);
+function findSaved(st) { if (!st) return null; const k = stateKey(st); const it = loadSaved().find(x => stateKey(x.state) === k); return it ? it.id : null; }
+const chartSub = ch => `${ch.unknown ? `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y}, время неизвестно` : fmtWall(ch.w)} · ${ch.place}`;
+function saveCurrent(ch) {
+  if (!CUR_STATE || findSaved(CUR_STATE)) return;
+  const list = loadSaved();
+  const title = ch.name || `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y}`;
+  list.unshift({ id: String(Date.now()), title, sub: chartSub(ch), state: CUR_STATE });
+  if (!storeSaved(list)) { showError("Не получилось сохранить: этот браузер не даёт хранить данные (например, в приватном режиме)."); return; }
+  renderSaved();
+  const sb = $("saveBtn"); if (sb) { sb.textContent = "✓ Сохранено"; sb.classList.add("done"); }
+}
+const initialOf = t => (String(t || "?").trim().charAt(0) || "?").toUpperCase();
+// Строка «☉ знак · ☽ знак · ASC знак» считается по данным карты и запоминается до изменения данных
+const SIG_CACHE = new Map();
+let SIG_RUN = 0;
+async function fillSigns(list) {
+  const run = ++SIG_RUN;
+  for (const x of list) {
+    const k = x.id + stateKey(x.state);
+    if (!SIG_CACHE.has(k)) {
+      try {
+        const ch = await chartFromState(x.state);
+        const sg = lon => SIGNS[Math.floor(norm(lon) / 30)], sun = ch.planets.find(p => p.key === "sun"), moon = ch.planets.find(p => p.key === "moon");
+        SIG_CACHE.set(k, `☉ ${sg(sun.lon)} · ☽ ${sg(moon.lon)}${ch.houses ? ` · ASC ${sg(ch.houses.asc)}` : ""}`);
+      } catch (e) { SIG_CACHE.set(k, ""); }
+    }
+    if (run !== SIG_RUN) return;
+    const el = document.querySelector(`#savedList .sig[data-id="${CSS.escape(x.id)}"]`);
+    if (el) el.textContent = SIG_CACHE.get(k);
+  }
+}
+function renderSaved() {
+  const list = loadSaved();
+  if ($("trBase")) refreshPickers();
+  const q = $("savedSearch").value.trim().toLowerCase(), many = list.length > 5;
+  $("savedSearch").hidden = !many;
+  const shown = many && q ? list.filter(x => x.title.toLowerCase().includes(q)) : list;
+  $("savedEmpty").hidden = !!list.length; $("savedList").hidden = !shown.length; $("exportAll").hidden = !list.length;
+  $("savedNone").hidden = !list.length || !!shown.length;
+  $("savedList").innerHTML = shown.map(x => { const sig = SIG_CACHE.get(x.id + stateKey(x.state)) || "";
+    return `<li><span class="ava" aria-hidden="true">${esc(initialOf(x.title))}</span><button type="button" class="open" data-id="${esc(x.id)}"><b>${esc(x.title)}</b><small>${esc(x.sub)}</small><small class="sig" data-id="${esc(x.id)}">${esc(sig)}</small></button><button type="button" class="more" data-id="${esc(x.id)}" aria-label="Действия с картой «${esc(x.title)}»" aria-haspopup="dialog">⋯</button></li>`; }).join("");
+  if (MODE === "charts") fillSigns(shown);
+}
+/* ---------- Шторка действий с картой ---------- */
+let SHEET_ID = null;
+function sheetOpen(item) {
+  SHEET_ID = item.id;
+  $("sheetTitle").textContent = item.title; $("sheetSub").textContent = item.sub;
+  $("sheetMain").hidden = false; $("sheetDel").hidden = true;
+  $("sheet").hidden = false; document.body.classList.add("noscroll");
+  $("sheetMain").querySelector("button").focus();
+}
+function sheetClose() {
+  $("sheet").hidden = true; document.body.classList.remove("noscroll");
+  const b = SHEET_ID && document.querySelector(`#savedList .more[data-id="${CSS.escape(SHEET_ID)}"]`);
+  SHEET_ID = null; if (b) b.focus();
+}
+function openSaved(item, edit) {
+  setMode("natal");
+  applyFormState(item.state);
+  CUR_STATE = item.state; EDIT_ID = edit ? item.id : null;
+  if (edit) { FORM_OPEN = true; syncFormVis(); $("out").innerHTML = ""; $("formCard").innerHTML = ""; RERENDER = null;
+    $("notes").innerHTML = `<div class="note">Изменяете данные карты «${esc(item.title)}». После «Построить» они сохранятся в «Мои карты».</div>`; $("name").focus(); return; }
+  try { CUR_INPUT = readInput(); CUR_INPUT.fold = item.state.fold || 0; CUR_INPUT.strict = item.state.strict !== false; }
+  catch (err) { showError(err.message); return; }
+  run(true);
+}
+// После «Изменить данные» построенная карта заменяет прежнюю запись
+let EDIT_ID = null;
+function applyEdit(ch) {
+  const id = EDIT_ID; EDIT_ID = null;
+  const list = loadSaved(), i = list.findIndex(x => x.id === id);
+  if (i < 0 || !CUR_STATE) return;
+  list[i] = { ...list[i], title: ch.name || `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y}`, sub: chartSub(ch), state: CUR_STATE };
+  if (storeSaved(list)) { renderSaved(); const sb = $("saveBtn"); if (sb) { sb.textContent = "✓ Сохранено"; sb.classList.add("done"); }
+    $("notes").insertAdjacentHTML("afterbegin", '<div class="note">Изменения сохранены в «Мои карты».</div>'); }
+}
+function initSheet() {
+  $("savedSearch").addEventListener("input", renderSaved);
+  $("sheet").addEventListener("keydown", e => { if (e.key === "Escape") sheetClose(); });
+  $("sheet").addEventListener("click", e => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const act = b.dataset.act, item = loadSaved().find(x => x.id === SHEET_ID);
+    if (act === "cancel" || !item) { sheetClose(); return; }
+    if (act === "del") { $("sheetMain").hidden = true; $("sheetDel").hidden = false; $("sheetDel").querySelector("button").focus(); return; }
+    sheetClose();
+    if (act === "delok") {
+      storeSaved(loadSaved().filter(x => x.id !== item.id)); renderSaved();
+      savedMsg(`Карта «${item.title}» удалена.`);
+      const sb = $("saveBtn");
+      if (sb && !findSaved(CUR_STATE)) { sb.textContent = "＋ Сохранить"; sb.classList.remove("done"); }
+    } else if (act === "file") exportCharts([item], `karta-${fileSafe(item.title)}-${item.state.date}.json`);
+    else if (act === "open" || act === "edit") openSaved(item, act === "edit");
+    else if (act === "transit") { TR.baseId = RET.baseId = DIR.baseId = item.id; RET.jd = null; setMode("transit"); }
+    else if (act === "syn") {
+      SYN.a = item.id; if (SYN.b === item.id) SYN.b = null;
+      setMode("synastry"); $("synB").focus();
+    }
+  });
+}
+
+/* ---------- Сохранение файлов ---------- */
+// Через возможность скачивания страницы (с подтверждением), иначе обычной загрузкой браузера.
+async function saveFile(filename, text) {
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (e) { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename, data: text }); return "saved"; }
+    catch (err) { if (err && err.code === "declined") return "declined"; }
+  }
+  // На телефоне вне Claude надёжнее всего меню «Поделиться»: «Сохранить в Файлы», почта, мессенджер
+  try {
+    const file = new File([text], filename, { type: "application/json" });
+    if (STANDALONE && navigator.canShare && navigator.canShare({ files: [file] }) && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
+      await navigator.share({ files: [file], title: filename });
+      return "saved";
+    }
+  } catch (err) { if (err && err.name === "AbortError") return "declined"; }
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    return "saved";
+  } catch (e) { return "failed"; }
+}
+const TRANSLIT = { а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"ts",ч:"ch",ш:"sh",щ:"sch",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya" };
+// Имена файлов латиницей: так их надёжно сохраняют все браузеры и телефоны
+const fileSafe = t => (t.toLowerCase().replace(/[а-яё]/g, ch => TRANSLIT[ch]).replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "karta").slice(0, 60);
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+
+/* ---------- Редактор орбисов ---------- */
+let ORB_TAB = "natal";
+const POINT_GLYPH = Object.fromEntries([...BODIES.map(b => [b[0], b[2]]), ["asc", "ASC"], ["mc", "MC"]]);
+const POINT_NAME = Object.fromEntries([...BODIES.map(b => [b[0], b[1]]), ["asc", "ASC/DSC"], ["mc", "MC/IC"]]);
+function orbMsg(text, err) { const m = $("orbMsg"); m.textContent = text; m.classList.toggle("err", !!err); }
+function renderOrbs() {
+  $("orbTabs").innerHTML = ORB_PROFILES.map(([k, n]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === ORB_TAB}">${n}</button>`).join("");
+  const pr = ORBSET[ORB_TAB];
+  let h = '<table><thead><tr><th></th>' + ORB_POINTS.map(k => `<th class="${k === "asc" || k === "mc" ? "pt-ax" : ""}" title="${esc(POINT_NAME[k])}">${k === "asc" || k === "mc" ? POINT_GLYPH[k] : POINT_GLYPH[k] + VS15}</th>`).join("") + "</tr></thead><tbody>";
+  for (const [key, name, glyph, angle] of ASPECTS) {
+    h += `<tr class="${pr.on[key] ? "" : "off"}"><td class="asp" title="${name}"><label><input type="checkbox" data-on="${key}" aria-label="${name}"${pr.on[key] ? " checked" : ""}><span class="g">${glyph}</span>${angle}°</label></td>` +
+      pr.orbs[key].map((v, i) => `<td><input class="orb" inputmode="decimal" data-asp="${key}" data-i="${i}" value="${v}" aria-label="${name}, ${esc(POINT_NAME[ORB_POINTS[i]])}"></td>`).join("") + "</tr>";
+  }
+  $("orbTable").innerHTML = h + "</tbody></table>";
+}
+function orbsChanged() {
+  storeOrbSet();
+  if (RERENDER) RERENDER();   // пересчитать аспекты открытой карты
+}
+function parseOrb(str) {
+  const v = Number(String(str).trim().replace(",", "."));
+  return str.trim() !== "" && Number.isFinite(v) && v >= 0 && v <= 15 && Math.abs(v * 10 - Math.round(v * 10)) < 1e-9 ? v : null;
+}
+function initOrbs() {
+  $("orbTabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (!b) return; ORB_TAB = b.dataset.tab; renderOrbs(); orbMsg(""); });
+  $("orbTable").addEventListener("change", e => {
+    const t = e.target, pr = ORBSET[ORB_TAB];
+    if (t.dataset.on) { pr.on[t.dataset.on] = t.checked; t.closest("tr").classList.toggle("off", !t.checked); orbsChanged(); return; }
+    if (!t.dataset.asp) return;
+    const v = parseOrb(t.value), old = pr.orbs[t.dataset.asp][+t.dataset.i];
+    if (v === null) { t.value = old; t.classList.add("bad"); orbMsg("Орбис должен быть числом от 0 до 15 с шагом 0.1. Значение не сохранено.", true); setTimeout(() => t.classList.remove("bad"), 1500); return; }
+    t.value = v; pr.orbs[t.dataset.asp][+t.dataset.i] = v; orbMsg("Сохранено."); orbsChanged();
+  });
+  $("orbReset").addEventListener("click", () => {
+    ORBSET[ORB_TAB] = defaultProfile(ORB_TAB); renderOrbs(); orbsChanged();
+    orbMsg(`Набор «${ORB_PROFILES.find(p => p[0] === ORB_TAB)[1]}» возвращён к исходным значениям.`);
+  });
+  $("orbExport").addEventListener("click", async () => {
+    const json = JSON.stringify({ app: "natal-chart", kind: "orbs", version: 1, rule: ORB_RULE, points: ORB_POINTS, aspects: ASPECTS.map(a => a[0]), profiles: ORBSET }, null, 1);
+    const r = await saveFile("orbisy.json", json);
+    orbMsg(r === "saved" ? "Файл orbisy.json сохранён." : r === "declined" ? "Сохранение отменено." : "Не удалось сохранить файл на этом устройстве.", r === "failed");
+  });
+  $("orbImport").addEventListener("change", async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (!data || !data.profiles) throw new Error("в файле нет наборов орбисов");
+      let n = 0;
+      for (const [k] of ORB_PROFILES) if (data.profiles[k] !== undefined) {
+        if (!validProfile(data.profiles[k])) throw new Error(`набор «${k}» повреждён`);
+        n++;
+      }
+      if (!n) throw new Error("в файле нет наборов орбисов");
+      for (const [k] of ORB_PROFILES) if (data.profiles[k] !== undefined) ORBSET[k] = data.profiles[k];
+      renderOrbs(); orbsChanged();
+      orbMsg(`Загружено наборов: ${n}.`);
+    } catch (err) { orbMsg(`Не удалось загрузить файл: ${err.message}. Настройки не изменены.`, true); }
+  });
+}
+
+/* ---------- Выгрузка карт и резервная копия ---------- */
+function savedMsg(text, err) { for (const id of ["savedMsg", "fileMsg"]) { const m = $(id); m.textContent = text; m.classList.toggle("err", !!err); } }
+const fileResultText = (r, ok) => r === "saved" ? ok : r === "declined" ? "Сохранение отменено." : "Не удалось сохранить файл на этом устройстве.";
+async function exportCharts(items, filename) {
+  const json = JSON.stringify({ app: "natal-chart", kind: "charts", version: 1, exported: new Date().toISOString(), charts: items }, null, 1);
+  const r = await saveFile(filename, json);
+  savedMsg(fileResultText(r, `Файл ${filename} сохранён.`), r === "failed");
+}
+function readSettings() {
+  const st = {};
+  try { st.theme = lsGet(THEME_KEY) || "light"; st.showMinor = lsGet("natal-show-minor") === "1"; } catch (e) {}
+  return st;
+}
+const validChart = x => x && typeof x === "object" && typeof x.title === "string" && typeof x.sub === "string" &&
+  x.state && typeof x.state === "object" && /^\d{4}-\d{2}-\d{2}$/.test(x.state.date || "");
+function initBackup() {
+  $("exportAll").addEventListener("click", () => {
+    const list = loadSaved(); if (!list.length) return;
+    exportCharts(list, `moi-karty-${today()}.json`);
+  });
+  $("backupBtn").addEventListener("click", async () => {
+    const filename = `natal-backup-${today()}.json`;
+    const json = JSON.stringify({ app: "natal-chart", kind: "backup", version: 1, exported: new Date().toISOString(),
+      charts: loadSaved(), orbs: { rule: ORB_RULE, profiles: ORBSET }, settings: readSettings() }, null, 1);
+    const r = await saveFile(filename, json);
+    if (r === "saved") { try { localStorage.setItem("natal-last-backup", new Date().toISOString()); } catch (e) {} if (CLOUD.state === "local") cloudStatus("local"); }
+    savedMsg(fileResultText(r, `Резервная копия ${filename} сохранена: карты, орбисы и настройки.`), r === "failed");
+  });
+  $("importCharts").addEventListener("change", async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (!data || data.app !== "natal-chart" || !["charts", "backup", "orbs"].includes(data.kind)) throw new Error("это не файл приложения «Натальная карта»");
+      const parts = [];
+      if (data.kind === "orbs" || data.kind === "backup") {
+        const profs = data.kind === "orbs" ? data.profiles : data.orbs && data.orbs.profiles;
+        if (profs) {
+          for (const [k] of ORB_PROFILES) if (profs[k] !== undefined && !validProfile(profs[k])) throw new Error(`набор орбисов «${k}» повреждён`);
+        }
+      }
+      if (data.charts !== undefined && (!Array.isArray(data.charts) || !data.charts.every(validChart))) throw new Error("список карт повреждён");
+      // Карты добавляются к уже сохранённым, одинаковые не повторяются
+      if (Array.isArray(data.charts)) {
+        const list = loadSaved(), keys = new Set(list.map(x => stateKey(x.state)));
+        let added = 0;
+        for (const x of data.charts) {
+          const k = stateKey(x.state); if (keys.has(k)) continue;
+          keys.add(k); list.push({ ...x, id: String(Date.now()) + "-" + added }); added++;
+        }
+        if (!storeSaved(list)) throw new Error("этот браузер не даёт хранить данные");
+        parts.push(`карт добавлено: ${added}` + (data.charts.length > added ? `, уже были: ${data.charts.length - added}` : ""));
+        renderSaved();
+      }
+      const profs = data.kind === "orbs" ? data.profiles : data.orbs && data.orbs.profiles;
+      if (profs && data.kind !== "charts") {
+        for (const [k] of ORB_PROFILES) if (profs[k] !== undefined) ORBSET[k] = profs[k];
+        storeOrbSet(); if (MODE === "settings") renderOrbs();
+        parts.push("орбисы восстановлены");
+      }
+      if (data.kind === "backup" && data.settings) {
+        try {
+          if (data.settings.theme === "dark" || data.settings.theme === "light") { lsSet(THEME_KEY, data.settings.theme); applyTheme(data.settings.theme); }
+          if (typeof data.settings.showMinor === "boolean") { lsSet("natal-show-minor", data.settings.showMinor ? "1" : "0"); SHOW_MINOR = data.settings.showMinor; }
+        } catch (e2) {}
+        parts.push("настройки восстановлены");
+      }
+      if (RERENDER) RERENDER();
+      savedMsg(parts.length ? parts.join("; ") + "." : "В файле нет данных для загрузки.");
+    } catch (err) { savedMsg(`Не удалось загрузить файл: ${err.message}. Ничего не изменено.`, true); }
+  });
+}
+
+/* ---------- Транзиты и синастрия ---------- */
+let MODE = "natal", LAST_FC = "transit";
+if (["transit", "solar", "lunar", "direction"].includes(lsGet("natal-last-fc"))) LAST_FC = lsGet("natal-last-fc");
+const TR = { baseId: null, utc: Date.now(), tz: null, note: "" };
+const SYN = { a: null, b: null, tmp: [], side: "b" };
+const synEntries = () => [...loadSaved(), ...SYN.tmp];
+function wallOf(utcMs, tz) {
+  const d = new Date(utcMs + offsetMs(utcMs, tz));
+  return { y: d.getUTCFullYear(), mo: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours(), mi: d.getUTCMinutes(), s: 0 };
+}
+// Карта из сохранённых данных формы (форма натала при этом не меняется)
+async function chartFromState(st) {
+  const keep = formState(), keepTz = tzTouched;
+  let input;
+  try { applyFormState(st); input = readInput(); input.fold = st.fold || 0; input.strict = st.strict !== false; }
+  finally { applyFormState(keep); tzTouched = keepTz; }
+  const jd = approxJd(input.w);
+  await ensureEph([jd - 1.5, jd + 1.5]);
+  return buildChart(input);
+}
+function refreshPickers() {
+  const list = loadSaved();
+  const opts = list.map(x => `<option value="${esc(x.id)}">${esc(x.title)} · ${esc(x.sub)}</option>`).join("");
+  for (const id of ["trBase", "retBase", "dirBase"]) { const el = $(id), v = el.value; el.innerHTML = opts; if (list.some(x => x.id === v)) el.value = v; }
+  const synList = synEntries();
+  const synOpts = (list.length ? `<optgroup label="Мои карты">${opts}</optgroup>` : "") +
+    (SYN.tmp.length ? `<optgroup label="Введено вручную">${SYN.tmp.map(x => `<option value="${esc(x.id)}">${esc(x.title)} · ${esc(x.sub)}</option>`).join("")}</optgroup>` : "") +
+    '<option value="__new">✎ Ввести данные…</option>';
+  for (const id of ["synA", "synB"]) $(id).innerHTML = synOpts;
+  // одна натальная карта для всех прогнозов
+  if (!list.some(x => x.id === TR.baseId)) TR.baseId = list[0] ? list[0].id : null;
+  RET.baseId = DIR.baseId = TR.baseId;
+  $("retBase").value = $("dirBase").value = TR.baseId || "";
+  const it = list.find(x => x.id === TR.baseId);
+  for (const el of document.querySelectorAll(".base-lbl")) el.textContent = it ? `${it.title} · ${String(it.sub).split(" ")[0]}` : "—";
+  $("dirPane").querySelector(".pick-empty").hidden = list.length > 0;
+  $("retPane").querySelector(".pick-empty").hidden = list.length > 0;
+  if (!synList.some(x => x.id === SYN.a)) SYN.a = synList[0] ? synList[0].id : null;
+  if (!synList.some(x => x.id === SYN.b) || SYN.b === SYN.a) SYN.b = (synList.find(x => x.id !== SYN.a) || {}).id || null;
+  $("trBase").value = TR.baseId || ""; $("synA").value = SYN.a || ""; $("synB").value = SYN.b || "";
+  if (!SYN.a) $("synA").selectedIndex = -1; if (!SYN.b) $("synB").selectedIndex = -1;
+  $("trPane").querySelector(".pick-empty").hidden = list.length > 0;
+  $("synPane").querySelector(".pick-empty").hidden = synList.length > 1;
+}
+const VIEW_TITLES = { natal: "Натальная карта", transit: "Транзиты", solar: "Соляр", lunar: "Лунар", direction: "Дирекции", synastry: "Синастрия", charts: "Мои карты", settings: "Настройки" };
+const FORECAST = new Set(["transit", "solar", "lunar", "direction"]);
+function setMode(m) {
+  MODE = m;
+  for (const b of $("modes").querySelectorAll("button")) b.setAttribute("aria-selected", String(b.dataset.mode === m || (b.dataset.mode === "transit" && FORECAST.has(m))));
+  for (const b of $("fcSeg").querySelectorAll("button")) b.setAttribute("aria-selected", String(b.dataset.fc === m));
+  if (FORECAST.has(m) && LAST_FC !== m) { LAST_FC = m; try { lsSet("natal-last-fc", m); } catch (e) {} }
+  $("viewTitle").textContent = VIEW_TITLES[m];
+  $("fcSeg").hidden = !FORECAST.has(m);
+  syncFormVis(); $("trPane").hidden = m !== "transit"; $("synPane").hidden = m !== "synastry";
+  $("retPane").hidden = m !== "solar" && m !== "lunar"; $("dirPane").hidden = m !== "direction";
+  $("saved").hidden = m !== "charts"; $("settings").hidden = m !== "settings";
+  const chartView = m === "natal" || m === "synastry" || FORECAST.has(m);
+  $("out").hidden = !chartView; $("notes").hidden = !chartView;
+  $("notes").innerHTML = "";
+  window.scrollTo(0, 0);
+  if (m === "charts") { savedMsg(""); renderSaved(); return; }
+  if (m === "settings") { renderOrbs(); orbMsg(""); savedMsg(""); return; }
+  if (m === "natal") { if (LAST_CHART) renderChart(LAST_CHART.ch, LAST_CHART.example); return; }
+  refreshPickers();
+  if (m === "transit") runTransit(); else if (m === "synastry") runSynastry(); else if (m === "direction") runDirection(); else { RET.jd = null; runReturn(); }
+}
+function syncTrInputs() {
+  const w = wallOf(TR.utc, TR.tz);
+  $("trDate").value = `${String(w.y).padStart(4, "0")}-${pad(w.mo)}-${pad(w.d)}`; $("trTime").value = `${pad(w.h)}:${pad(w.mi)}`; $("trTz").value = TR.tz;
+}
+function trFromInputs() {
+  const dv = $("trDate").value, tv = $("trTime").value || "12:00";
+  if (!dv) return;
+  const [y, mo, d] = dv.split("-").map(Number), [h, mi] = tv.split(":").map(Number);
+  if (y < 1800 || y > 2399) { showError("Поддерживаются даты с 1800 по 2399 год."); return false; }
+  TR.tz = $("trTz").value || TR.tz;
+  const r = localToUtc({ y, mo, d, h, mi, s: 0 }, TR.tz, { strict: false });
+  TR.utc = r.utc;
+  TR.note = gapNote(r);
+  return true;
+}
+// Несуществующее местное время (часы переводили вперёд) — сообщаем, какое время взято
+function gapNote(r) {
+  if (!r.ask || r.ask.kind !== "gap") return "";
+  return `Времени ${r.ask.wall} в поясе ${r.ask.tz} не было: часы переводили вперёд. Взято ${fmtWall(wallOf(r.utc, r.ask.tz))}.`;
+}
+function stepTransit(step) {
+  TR.note = "";
+  if (step === "now") { TR.utc = Date.now(); return; }
+  const sg = step[0] === "-" ? -1 : 1, unit = step.slice(1);
+  if (unit === "hour") { TR.utc += sg * 3600e3; return; }
+  const w = wallOf(TR.utc, TR.tz);
+  if (unit === "day") { const t = new Date(Date.UTC(w.y, w.mo - 1, w.d + sg)); w.y = t.getUTCFullYear(); w.mo = t.getUTCMonth() + 1; w.d = t.getUTCDate(); }
+  else { let mo = w.mo + sg, y = w.y; if (mo < 1) { mo = 12; y--; } if (mo > 12) { mo = 1; y++; } const dim = new Date(Date.UTC(y, mo, 0)).getUTCDate(); w.y = y; w.mo = mo; w.d = Math.min(w.d, dim); }
+  const r = localToUtc(w, TR.tz, { strict: false });
+  TR.utc = r.utc;
+  TR.note = gapNote(r);
+}
+function crossGrid(outerPts, innerPts, aspects) {
+  const cell = new Map(aspects.map(a => [a.a.key + "|" + a.b.key, a]));
+  let h = '<table class="grid-asp"><thead><tr><th></th>' + innerPts.map(p => `<th class="${p.key === "asc" || p.key === "mc" ? "ang" : ""}" title="${esc(p.name)}">${pointGlyph(p)}</th>`).join("") + "</tr></thead><tbody>";
+  for (const q of outerPts) {
+    h += `<tr><th class="tag-out${q.key === "asc" || q.key === "mc" ? " ang" : ""}" title="${esc(q.name)}">${pointGlyph(q)}</th>`;
+    for (const p of innerPts) {
+      const a = cell.get(q.key + "|" + p.key);
+      h += a ? `<td class="${a.kind || ""}" title="${esc(q.name)} — ${a.name.toLowerCase()} — ${esc(p.name)}, орбис ${fmtOrb(a.orb)}"><b>${a.glyph}</b><small>${fmtOrb(a.orb)}</small></td>` : "<td></td>";
+    }
+    h += "</tr>";
+  }
+  return h + "</tbody></table>";
+}
+function posRows(planets, houseFn) {
+  return planets.map(p => { const hs = houseFn(p); return `<tr><td class="g pg">${glyphHtml(p)}</td><td class="nm">${esc(p.name)}</td><td class="n">${degSign(p)}</td>${hs !== undefined ? `<td class="n hs">${typeof hs === "number" ? ROMAN[hs - 1] : hs}</td>` : ""}</tr>`; }).join("");
+}
+// Общая отрисовка двойного круга: inner — карта с домами, outerPts — точки второй карты
+function renderPair({ head, inner, outerPlanets, outerPts, innerPts, aspects, outerLabel, innerLabel, tables, rerender, extra = "", bindExtra = () => {}, keep = () => true }) {
+  // keep — фильтр точек (только медленные транзиты, только септенер)
+  if (!SHOW_ANG) { innerPts = innerPts.filter(p => !isAng(p)); outerPts = outerPts.filter(p => !isAng(p)); }
+  const shown = aspects.filter(a => (SHOW_MINOR || MAJOR.has(a.key)) && (SHOW_ANG || (!isAng(a.a) && !isAng(a.b))) && keep(a.a, "outer") && keep(a.b, "inner"));
+  outerPts = outerPts.filter(p => keep(p, "outer")); innerPts = innerPts.filter(p => keep(p, "inner"));
+  $("out").innerHTML = `
+    <div class="result">
+      <div style="display:grid;gap:12px;min-width:0">
+        <div class="summary">${head}</div>
+        <div class="actions">${toggleBtn("minorBtn", SHOW_MINOR, "Минорные")}${inner.houses ? toggleBtn("angBtn", SHOW_ANG, "ASC/MC") : ""}${extra}</div>
+        ${wheelBox(renderSvg(inner, 600, { outer: outerPlanets, aspects: shown, outerLabel }))}
+        <div class="legend"><span><span class="sd sd0"></span>Огонь</span><span><span class="sd sd1"></span>Земля</span><span><span class="sd sd2"></span>Воздух</span><span><span class="sd sd3"></span>Вода</span>
+          <span class="tag-out">внешний круг: ${esc(outerLabel)}</span><span><span class="ln a-conj-bg"></span>соединения</span><span><span class="ln a-hard-bg"></span>напряжённые</span><span><span class="ln a-soft-bg"></span>гармоничные</span>${SHOW_MINOR ? '<span><span class="ln a-minor-bg"></span>минорные (пунктир)</span>' : ""}</div>
+      </div>
+      <div class="tables">${tables}</div>
+    </div>
+    ${aspSection(`Аспекты: ${esc(outerLabel)} → ${esc(innerLabel)}`, crossGrid(outerPts, innerPts, shown), shown, outerLabel, innerLabel)}`;
+  RERENDER = rerender;
+  bindToggle("minorBtn", () => SHOW_MINOR, v => SHOW_MINOR = v, "natal-show-minor", rerender);
+  bindToggle("angBtn", () => SHOW_ANG, v => SHOW_ANG = v, "natal-show-ang", rerender);
+  bindExtra();
+}
+const angPts = ch => ch.houses ? [{ key: "asc", name: "Асцендент", glyph: "AC", lon: ch.houses.asc, speed: 0 }, { key: "mc", name: "MC", glyph: "MC", lon: ch.houses.mc, speed: 0 }] : [];
+const chartLine = ch => `${esc(ch.name || "Без имени")}: ${ch.unknown ? `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y}, время неизвестно` : fmtWall(ch.w)} · ${esc(ch.place)}`;
+let TR_RUN = 0;
+async function runTransit() {
+  const item = loadSaved().find(x => x.id === TR.baseId);
+  if (!item) { $("out").innerHTML = ""; RERENDER = null; return; }
+  const run = ++TR_RUN;
+  try {
+    const natal = await chartFromState(item.state);
+    const jd = TR.utc / 864e5 + 2440587.5;
+    if (jd < 2378496.5 || jd > 2597641.5) throw new Error("Поддерживаются даты с 1800 по 2399 год.");
+    await ensureEph([jd - 1.5, jd + 1.5]);
+    if (run !== TR_RUN) return;
+    const trPl = planetPositions(jd).map(p => ({ ...p, name: p.name }));
+    syncTrInputs();
+    const w = wallOf(TR.utc, TR.tz), H = !!natal.houses;
+    const innerPts = [...natal.planets.map(p => ({ ...p, speed: 0 })), ...angPts(natal)];
+    const head = `<span><b>Транзиты</b> на ${fmtWall(w)} · ${esc(TR.tz)} · <span class="tag">${fmtOffset(offsetMs(TR.utc, TR.tz))}</span></span><span>к карте ${chartLine(natal)}</span>`;
+    const tables = `<div><h2>Транзитные планеты</h2><div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th>${H ? "<th>Дом натала</th>" : ""}</tr></thead><tbody>${posRows(trPl, p => H ? houseOf(natal.houses.cusps, p.lon) : undefined)}</tbody></table></div></div>`;
+    const draw = () => renderPair({ head, inner: natal, outerPlanets: trPl, outerPts: trPl, innerPts, aspects: findCrossAspects(innerPts, trPl, "transit", true),
+      outerLabel: "Тр.", innerLabel: "Нат.", tables, rerender: draw,
+      extra: toggleBtn("slowBtn", TR_SLOW, "Медленные ♃–♇"),
+      bindExtra: () => bindToggle("slowBtn", () => TR_SLOW, v => TR_SLOW = v, "natal-tr-slow", draw),
+      keep: (p, side) => side === "inner" || !TR_SLOW || SLOW.has(p.key) });
+    draw();
+    $("notes").innerHTML = TR.note ? `<div class="note">${esc(TR.note)}</div>` : "";
+  } catch (err) { if (run === TR_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+}
+let SYN_RUN = 0;
+async function runSynastry() {
+  const list = synEntries(), ia = list.find(x => x.id === SYN.a), ib = list.find(x => x.id === SYN.b);
+  if (!ia || !ib) { $("out").innerHTML = ""; RERENDER = null; $("notes").innerHTML = ""; if (!$("synForm").hidden) return; if (list.length < 2) synFormOpen(ia ? "b" : "a"); return; }
+  const run = ++SYN_RUN;
+  try {
+    const A = await chartFromState(ia.state), B = await chartFromState(ib.state);
+    if (run !== SYN_RUN) return;
+    const la = ia.title, lb = ib.title;
+    const aPts = [...A.planets, ...angPts(A)], bPts = [...B.planets, ...angPts(B)];
+    const head = `<span><b>Синастрия</b></span><span>A (внутри): ${chartLine(A)}</span><span class="tag-out">B (снаружи): ${chartLine(B)}</span>`;
+    const hA = A.houses ? p => houseOf(A.houses.cusps, p.lon) : () => "—", hB = B.houses ? p => houseOf(B.houses.cusps, p.lon) : () => "—";
+    const tables = `<div><h2>Планеты B (${esc(lb)}) в домах A (${esc(la)})</h2>${A.houses ? "" : '<p class="hint">У карты A неизвестно время рождения: домов нет.</p>'}<div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th><th>Дом A</th></tr></thead><tbody>${posRows(B.planets, hA)}</tbody></table></div></div>
+      <div><h2>Планеты A (${esc(la)}) в домах B (${esc(lb)})</h2>${B.houses ? "" : '<p class="hint">У карты B неизвестно время рождения: домов нет.</p>'}<div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th><th>Дом B</th></tr></thead><tbody>${posRows(A.planets, hB)}</tbody></table></div></div>`;
+    const draw = () => renderPair({ head, inner: SYN_SEPT ? { ...A, planets: A.planets.filter(p => SEPTENER.has(p.key)) } : A,
+      outerPlanets: SYN_SEPT ? B.planets.filter(p => SEPTENER.has(p.key)) : B.planets, outerPts: bPts, innerPts: aPts, aspects: findCrossAspects(aPts, bPts, "synastry", false),
+      outerLabel: "B", innerLabel: "A", tables, rerender: draw,
+      extra: toggleBtn("septBtn", SYN_SEPT, "Септенер ☉–♄"),
+      bindExtra: () => bindToggle("septBtn", () => SYN_SEPT, v => SYN_SEPT = v, "natal-syn-sept", draw),
+      keep: p => !SYN_SEPT || isAng(p) || SEPTENER.has(p.key) });
+    draw();
+    $("notes").innerHTML = (ia.id === ib.id ? '<div class="note">Выбрана одна и та же карта для A и B: это синастрия карты с самой собой.</div>' : "") +
+      [[ia, A], [ib, B]].filter(([x], i) => x.tmp && A.t && (i === 0 || ia.id !== ib.id)).map(([x, C]) => {
+        const k = C.t.ask; if (!k) return "";
+        const side = x.id === SYN.a ? "a" : "b";
+        const txt = k.kind === "gap" ? `У «${esc(x.title)}» времени ${esc(k.wall.slice(11, 16))} ${esc(k.wall.slice(0, 10))} не было: часы переводили вперёд. Посчитано по ${fmtOffset(k.before)}.`
+          : `У «${esc(x.title)}» время ${esc(k.wall.slice(11, 16))} ${esc(k.wall.slice(0, 10))} было дважды: часы переводили назад. Посчитано по ${k.fold ? "второму" : "первому"} (${fmtOffset(k.fold ? k.second : k.first)}).`;
+        const alt = k.kind === "ambiguous" ? `<button type="button" class="pill" data-synfold="${esc(x.id)}">Взять ${k.fold ? "первое" : "второе"} (${fmtOffset(k.fold ? k.first : k.second)})</button>` : "";
+        return `<div class="note ask"><p>${txt}</p><div class="btns">${alt}<button type="button" class="pill" data-synedit="${esc(x.id)}" data-side="${side}">Изменить</button></div></div>`;
+      }).join("") +
+      ((tmp => tmp.length ? `<div class="note ask"><p>Введено вручную, в «Мои карты» пока не сохранено:</p><div class="btns">${tmp.map(x => `<button type="button" class="pill save" data-synsave="${esc(x.id)}">＋ ${esc(x.title)}</button>`).join("")}</div></div>` : "")([ia, ib].filter((x, i, arr) => x.tmp && arr.indexOf(x) === i)));
+  } catch (err) { if (run === SYN_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+}
+/* ---------- Синастрия: данные, введённые вручную ---------- */
+// Введённые данные живут до закрытия страницы; их можно сохранить в «Мои карты»
+let SF_SEL = null;
+function synSideSync() { for (const b of $("synSide").children) b.setAttribute("aria-selected", String(b.dataset.side === SYN.side)); }
+function synFormOpen(side, item) {
+  SYN.side = side; SYN.edit = item ? item.id : null; synSideSync();
+  const st = item ? item.state : {};
+  $("sfName").value = st.name || ""; $("sfDate").value = st.date || ""; $("sfTime").value = st.time || ""; $("sfPlace").value = st.place || "";
+  $("sfNotime").checked = !!st.notime; $("sfTime").disabled = !!st.notime; SF_SEL = st.selected || null;
+  $("sfChosen").textContent = SF_SEL ? retPlaceLine(SF_SEL) : ""; $("sfMsg").textContent = "";
+  $("synForm").hidden = false; $("synEnter").hidden = true;
+  $("synForm").scrollIntoView({ block: "start", behavior: "smooth" }); $("sfName").focus();
+}
+function synFormClose() { $("synForm").hidden = true; $("synEnter").hidden = false; }
+// Подсказки городов для поля ввода
+function cityPicker(inp, ul, onPick) {
+  let items = [];
+  const show = (list, q) => {
+    items = list;
+    if (!list.length) { ul.hidden = true; inp.setAttribute("aria-expanded", "false"); return; }
+    ul.innerHTML = list.map((c, i) => `<li role="option"><button type="button" data-i="${i}">${esc(cityLabel(c, q))}<small>${esc(regionName(c.cc))} · ${c.en} · ${c.tz}</small></button></li>`).join("");
+    ul.hidden = false; inp.setAttribute("aria-expanded", "true");
+  };
+  inp.addEventListener("input", () => { onPick(null); show(searchCities(inp.value), inp.value); });
+  inp.addEventListener("blur", () => setTimeout(() => show([], ""), 150));
+  ul.addEventListener("mousedown", e => e.preventDefault());
+  ul.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const c = items[+b.dataset.i], label = cityLabel(c, inp.value);
+    inp.value = label; show([], ""); onPick({ label, lat: c.lat, lon: c.lon, tz: c.tz, cc: c.cc });
+  });
+}
+async function synFormGo() {
+  const msg = t => { $("sfMsg").textContent = t; };
+  const date = $("sfDate").value, notime = $("sfNotime").checked, time = $("sfTime").value;
+  if (!date) return msg("Укажите дату рождения.");
+  if (!notime && !time) return msg("Укажите время рождения или отметьте «Время неизвестно».");
+  if (!SF_SEL) return msg($("sfPlace").value.trim() ? "Выберите город из списка подсказок." : "Укажите место рождения.");
+  const st = { name: $("sfName").value.trim(), date, time: notime ? "" : time, notime, oldstyle: false, place: SF_SEL.label, selected: SF_SEL,
+    lat: "", lon: "", tz: SF_SEL.tz, tzTouched: false, off: "", fold: 0, strict: false };
+  $("sfGo").disabled = true;
+  try {
+    const ch = await chartFromState(st);
+    const item = { id: "tmp-" + Date.now(), tmp: true, title: ch.name || `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y}`, sub: chartSub(ch), state: st };
+    const old = SYN.edit && SYN.tmp.findIndex(x => x.id === SYN.edit);
+    if (SYN.edit && old >= 0) { SYN.tmp[old] = item; for (const k of ["a", "b"]) if (SYN[k] === SYN.edit) SYN[k] = item.id; }
+    else SYN.tmp.push(item);
+    SYN.edit = null; SYN[SYN.side] = item.id;
+    if (SYN.side === "b" && !SYN.a) SYN.a = (synEntries().find(x => x.id !== item.id) || {}).id || null;
+    if (SYN.side === "a" && !SYN.b) SYN.b = (synEntries().find(x => x.id !== item.id) || {}).id || null;
+    synFormClose(); refreshPickers(); runSynastry();
+    if (!SYN.a || !SYN.b) synFormOpen(SYN.a ? "b" : "a");
+  } catch (err) { msg(err.message); }
+  finally { $("sfGo").disabled = false; }
+}
+function synSaveTmp(id) {
+  const i = SYN.tmp.findIndex(x => x.id === id); if (i < 0) return;
+  const it = SYN.tmp[i], list = loadSaved(), have = findSaved({ ...it.state, strict: true }) || findSaved(it.state);
+  const newId = have || String(Date.now());
+  if (!have) { list.unshift({ id: newId, title: it.title, sub: it.sub, state: it.state }); if (!storeSaved(list)) { showError("Не получилось сохранить: этот браузер не даёт хранить данные."); return; } }
+  SYN.tmp.splice(i, 1);
+  if (SYN.a === id) SYN.a = newId; if (SYN.b === id) SYN.b = newId;
+  renderSaved(); runSynastry();
+}
+function initSynForm() {
+  cityPicker($("sfPlace"), $("sfSugg"), pl => { SF_SEL = pl; $("sfChosen").textContent = pl ? retPlaceLine(pl) : ""; });
+  $("sfNotime").addEventListener("change", e => { $("sfTime").disabled = e.target.checked; });
+  $("synSide").addEventListener("click", e => { const b = e.target.closest("[data-side]"); if (b) { SYN.side = b.dataset.side; synSideSync(); } });
+  $("synEnter").addEventListener("click", () => synFormOpen("b"));
+  $("sfCancel").addEventListener("click", () => { synFormClose(); runSynastry(); });
+  $("sfGo").addEventListener("click", synFormGo);
+  $("synForm").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.id !== "sfPlace") { e.preventDefault(); synFormGo(); } });
+  $("notes").addEventListener("click", e => {
+    const b = e.target.closest("[data-synsave],[data-synedit],[data-synfold]"); if (!b) return;
+    if (b.dataset.synsave) { synSaveTmp(b.dataset.synsave); return; }
+    const it = SYN.tmp.find(x => x.id === (b.dataset.synedit || b.dataset.synfold)); if (!it) return;
+    if (b.dataset.synfold) { it.state = { ...it.state, fold: it.state.fold ? 0 : 1 }; runSynastry(); return; }
+    synFormOpen(b.dataset.side, it);
+  });
+}
+/* ---------- Соляр и лунар ---------- */
+// Возврат Солнца (соляр) или Луны (лунар) на натальную долготу; строится на место нахождения
+const RET = { baseId: null, jd: null, place: null, dbl: false };
+const RET_BODY = { solar: "sun", lunar: "moon" }, RET_PERIOD = { solar: 365.2422, lunar: 27.3216 };
+try { RET.place = JSON.parse(lsGet("natal-ret-place") || "null"); RET.dbl = lsGet("natal-ret-dbl") === "1"; } catch (e) {}
+const sdiff = (a, b) => { let d = (a - b) % 360; if (d < 0) d += 360; return d > 180 ? d - 360 : d; };
+function bodyLonSpeed(key, jd) {
+  const h = 0.01;
+  return [interp(key, jd), sdiff(interp(key, jd + h / 2), interp(key, jd - h / 2)) / h];
+}
+async function solveReturn(kind, target, guess) {
+  const key = RET_BODY[kind];
+  let jd = guess;
+  for (let i = 0; i < 30; i++) {
+    await ensureEph([jd - 2, jd + 2]);
+    const [lon, spd] = bodyLonSpeed(key, jd);
+    const step = sdiff(lon, target) / spd;
+    jd -= step;
+    if (Math.abs(step) < 1e-9) break;
+  }
+  return jd;
+}
+async function lastReturn(kind, target, before) {
+  await ensureEph([before - 2, before + 2]);
+  const past = ((interp(RET_BODY[kind], before) - target) % 360 + 360) % 360;
+  let jd = await solveReturn(kind, target, before - past / (360 / RET_PERIOD[kind]));
+  if (jd > before) jd = await solveReturn(kind, target, jd - RET_PERIOD[kind]);
+  return jd;
+}
+function retPlaceLine(pl) { return pl ? `${pl.label}${pl.cc ? ", " + regionName(pl.cc) : ""} · ${pl.lat.toFixed(4)}, ${pl.lon.toFixed(4)} · ${pl.tz}` : ""; }
+let RET_RUN = 0;
+async function runReturn() {
+  const kind = MODE, item = loadSaved().find(x => x.id === RET.baseId);
+  if (!item) { $("out").innerHTML = ""; RERENDER = null; return; }
+  // место: последнее выбранное, иначе место рождения; предупреждение — только если места нет совсем
+  let pl = RET.place, auto = RET.place ? "last" : null;
+  if (!pl) {
+    const st = item.state, sel = st.selected;
+    if (sel && Number.isFinite(sel.lat)) { pl = { label: sel.label, lat: sel.lat, lon: sel.lon, tz: sel.tz, cc: sel.cc }; auto = "birth"; }
+    else if (st.lat && st.lon && st.tz) { pl = { label: st.place || "место рождения", lat: +st.lat, lon: +st.lon, tz: st.tz, cc: "" }; auto = "birth"; }
+  }
+  $("retHint").textContent = auto === "last" ? "Подставлено последнее место. Нажмите, чтобы изменить." : auto === "birth" ? "Подставлено место рождения. Нажмите, чтобы изменить." : "";
+  if (pl && document.activeElement !== $("retPlace")) { $("retPlace").value = pl.label; $("retChosen").textContent = retPlaceLine(pl); }
+  if (!pl) { $("out").innerHTML = ""; RERENDER = null; $("notes").innerHTML = '<div class="note">Укажите город, где человек находится в день возврата: дома считаются для этого места.</div>'; return; }
+  const run = ++RET_RUN;
+  try {
+    const natal = await chartFromState(item.state);
+    const target = natal.planets.find(p => p.key === RET_BODY[kind]).lon;
+    const nowJd = Date.now() / 864e5 + 2440587.5;
+    let jd = RET.jd;
+    // ближайший прошедший возврат; если рождение в будущем — первый возврат после рождения
+    if (jd === null) jd = nowJd < natal.jd + RET_PERIOD[kind]
+      ? await solveReturn(kind, target, natal.jd + RET_PERIOD[kind])
+      : await lastReturn(kind, target, Math.min(nowJd, 2597600));
+    if (jd < 2378497 || jd > 2597640) throw new Error("Поддерживаются даты с 1800 по 2399 год.");
+    if (run !== RET_RUN) return;
+    RET.jd = jd;
+    const utc = Math.round((jd - 2440587.5) * 864e5);
+    const off = offsetMs(utc, pl.tz), dd = new Date(utc + off);
+    const w = { y: dd.getUTCFullYear(), mo: dd.getUTCMonth() + 1, d: dd.getUTCDate(), h: dd.getUTCHours(), mi: dd.getUTCMinutes(), s: dd.getUTCSeconds() };
+    const label = kind === "solar" ? "Соляр" : "Лунар";
+    $("retLbl").textContent = kind === "solar" ? `Соляр ${w.y}` : `Лунар ${["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"][w.mo - 1]} ${w.y}`;
+    const ch = chartCore({ name: `${label} ${natal.name || ""}`.trim(), place: `${pl.label}${pl.cc ? ", " + regionName(pl.cc) : ""}`, lat: pl.lat, lon: pl.lon, w, unknown: false, notes: [] },
+      { utc, off, tz: pl.tz, dst: false, warnings: [] });
+    const u = new Date(utc), us = `${pad(u.getUTCDate())}.${pad(u.getUTCMonth() + 1)}.${u.getUTCFullYear()} ${pad(u.getUTCHours())}:${pad(u.getUTCMinutes())}:${pad(u.getUTCSeconds())}`;
+    const bodyName = kind === "solar" ? "Солнце" : "Луна";
+    const head = `<span><b>${label}</b> к карте ${chartLine(natal)}</span>
+      <span>${bodyName} возвращается на ${fmtDeg(target)}: <b>${fmtWall(w)}:${pad(w.s)}</b> · ${esc(pl.tz)} · <span class="tag">${fmtOffset(off)}</span> · UTC <span class="tag">${us}</span></span>
+      <span>Место: <b>${esc(pl.label)}</b> · ${Math.abs(pl.lat).toFixed(4)}° ${pl.lat >= 0 ? "с. ш." : "ю. ш."}, ${Math.abs(pl.lon).toFixed(4)}° ${pl.lon >= 0 ? "в. д." : "з. д."}</span>
+      ${ch.houses ? `<span>Дома: <b>${ch.houses.system}</b> · ASC <span class="tag">${fmtDeg(ch.houses.asc)}</span> · MC <span class="tag">${fmtDeg(ch.houses.mc)}</span></span>` : ""}`;
+    const dblBtn = toggleBtn("retDblBtn", RET.dbl, "С наталом");
+    const bindDbl = () => bindToggle("retDblBtn", () => RET.dbl, v => RET.dbl = v, "natal-ret-dbl", runReturn);
+    const notes = (natal.unknown && kind === "lunar" ? '<div class="note">У натальной карты неизвестно время рождения: натальная Луна взята на 12:00, лунар может сдвинуться на несколько часов.</div>' : "") +
+      ch.warnings.map(x => `<div class="note">${esc(x)}</div>`).join("");
+    if (!RET.dbl) {
+      renderChart(ch, false, { head, actions: dblBtn, notes, bind: bindDbl });
+    } else {
+      // Натал внутри (его дома), планеты возврата снаружи — как во всех прогнозах (решение Kate)
+      const innerPts = [...natal.planets, ...angPts(natal)], outerPts = [...ch.planets, ...angPts(ch)];
+      const NH = !!natal.houses, lw = label.toLowerCase() + "а";
+      const tables = `<div><h2>Планеты ${lw}</h2><div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th><th>Дом ${lw}</th></tr></thead><tbody>${posRows(ch.planets, p => houseOf(ch.houses.cusps, p.lon))}</tbody></table></div></div>
+        ${NH ? `<div><h2>Планеты ${lw} в домах натала</h2><div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th><th>Дом натала</th></tr></thead><tbody>${posRows(ch.planets, p => houseOf(natal.houses.cusps, p.lon))}</tbody></table></div></div>` : ""}`;
+      const draw = () => renderPair({ head, inner: natal, outerPlanets: ch.planets, outerPts, innerPts, aspects: findCrossAspects(innerPts, outerPts, "natal", false),
+        outerLabel: label, innerLabel: "Нат.", tables, rerender: draw, extra: dblBtn, bindExtra: bindDbl });
+      draw();
+      $("notes").innerHTML = notes;
+    }
+  } catch (err) { if (run === RET_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+}
+async function stepReturn(dir) {
+  const item = loadSaved().find(x => x.id === RET.baseId);
+  if (!item || RET.jd === null) return;
+  if (dir === 0) { RET.jd = null; return runReturn(); }
+  const natal = await chartFromState(item.state);
+  const target = natal.planets.find(p => p.key === RET_BODY[MODE]).lon;
+  const g = RET.jd + dir * RET_PERIOD[MODE];
+  if (g < 2378500 || g > 2597600) { showError("Поддерживаются даты с 1800 по 2399 год."); return; }
+  RET.jd = await solveReturn(MODE, target, g);
+  runReturn();
+}
+function initReturns() {
+  $("retBase").addEventListener("change", e => setForecastBase(e.target.value));
+  $("retSteps").addEventListener("click", e => { const b = e.target.closest("[data-ret]"); if (b) stepReturn(+b.dataset.ret); });
+  const inp = $("retPlace"), ul = $("retSugg");
+  let items = [], before = null;
+  if (RET.place) { inp.value = RET.place.label; $("retChosen").textContent = retPlaceLine(RET.place); }
+  const show = (list, q) => {
+    items = list;
+    if (!list.length) { ul.hidden = true; inp.setAttribute("aria-expanded", "false"); return; }
+    ul.innerHTML = list.map((c, i) => `<li role="option"><button type="button" data-i="${i}">${esc(cityLabel(c, q))}<small>${esc(regionName(c.cc))} · ${c.en} · ${c.tz}</small></button></li>`).join("");
+    ul.hidden = false; inp.setAttribute("aria-expanded", "true");
+  };
+  inp.addEventListener("input", () => { show(searchCities(inp.value), inp.value); });
+  inp.addEventListener("focus", () => { if (inp.value) { before = inp.value; inp.value = ""; } });
+  inp.addEventListener("blur", () => setTimeout(() => { show([], ""); if (before !== null && !inp.value.trim()) inp.value = before; else if (before !== null && inp.value !== before) inp.value = before; before = null; }, 150));
+  ul.addEventListener("mousedown", e => e.preventDefault());
+  ul.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const c = items[+b.dataset.i], label = cityLabel(c, inp.value);
+    RET.place = { label, lat: c.lat, lon: c.lon, tz: c.tz, cc: c.cc };
+    try { lsSet("natal-ret-place", JSON.stringify(RET.place)); } catch (e) {}
+    inp.value = label; before = null; $("retChosen").textContent = retPlaceLine(RET.place); show([], "");
+    inp.blur(); runReturn();
+  });
+}
+/* ---------- Дирекции солнечной дуги (зодиакальные) ---------- */
+// Дуга = долгота вторично-прогрессивного Солнца (сутки после рождения за год жизни) − натальное Солнце;
+// дуга прибавляется ко всем натальным точкам, включая ASC и MC
+const TROPICAL_YEAR = 365.2422;
+const DIR = { baseId: null, date: null };
+function todayStr() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+async function solarArc(natalJd, natalSun, targetJd) {
+  const pj = natalJd + (targetJd - natalJd) / TROPICAL_YEAR;
+  await ensureEph([pj - 2, pj + 2]);
+  return ((interp("sun", pj) - natalSun) % 360 + 360) % 360;
+}
+function fmtArc(a) { const m = Math.round(a * 60); return `${Math.floor(m / 60)}°${pad(m % 60)}′`; }
+let DIR_RUN = 0;
+async function runDirection() {
+  const item = loadSaved().find(x => x.id === DIR.baseId);
+  if (!item) { $("out").innerHTML = ""; RERENDER = null; return; }
+  if (!DIR.date) DIR.date = todayStr();
+  $("dirDate").value = DIR.date;
+  const run = ++DIR_RUN;
+  try {
+    const natal = await chartFromState(item.state);
+    const [y, mo, d] = DIR.date.split("-").map(Number);
+    const tj = Date.UTC(y, mo - 1, d, 12) / 864e5 + 2440587.5;   // на полдень UTC выбранной даты
+    if (tj < natal.jd) throw new Error("Дата дирекций раньше даты рождения: выберите дату после рождения.");
+    const sun = natal.planets.find(p => p.key === "sun").lon;
+    const arc = await solarArc(natal.jd, sun, tj);
+    if (run !== DIR_RUN) return;
+    // дирекционная дуга движется вперёд ~1° в год: speed > 0 для «сходящийся / расходящийся»
+    const dirPl = natal.planets.map(p => ({ ...p, lon: norm(p.lon + arc), speed: 1 }));
+    const dirPts = [...dirPl, ...angPts(natal).map(p => ({ ...p, lon: norm(p.lon + arc), speed: 1 }))];
+    const innerPts = [...natal.planets.map(p => ({ ...p, speed: 0 })), ...angPts(natal)];
+    const H = !!natal.houses;
+    const head = `<span><b>Дирекции солнечной дуги</b> на ${pad(d)}.${pad(mo)}.${y} · дуга <span class="tag">${fmtArc(arc)}</span></span><span>к карте ${chartLine(natal)}</span>`;
+    const tables = `<div><h2>Дирекционные точки</h2><div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th>${H ? "<th>Дом натала</th>" : ""}</tr></thead><tbody>${posRows(dirPts, p => H ? houseOf(natal.houses.cusps, p.lon) : undefined)}</tbody></table></div></div>`;
+    const draw = () => renderPair({ head, inner: natal, outerPlanets: SHOW_ANG ? dirPts : dirPl, outerPts: dirPts, innerPts,
+      aspects: findCrossAspects(innerPts, dirPts, "direction", true), outerLabel: "Дир.", innerLabel: "Нат.", tables, rerender: draw });
+    draw();
+    $("notes").innerHTML = natal.unknown ? '<div class="note">У натальной карты неизвестно время рождения: дирекции ASC и MC не строятся.</div>' : "";
+  } catch (err) { if (run === DIR_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+}
+function setForecastBase(id) {
+  TR.baseId = RET.baseId = DIR.baseId = id; RET.jd = null;
+  refreshPickers();
+  if (MODE === "transit") runTransit(); else if (MODE === "direction") runDirection(); else runReturn();
+}
+function initDirections() {
+  $("dirBase").addEventListener("change", e => setForecastBase(e.target.value));
+  DIR.unit = 1;
+  $("dirUnit").addEventListener("click", e => { const b = e.target.closest("[data-unit]"); if (!b) return; DIR.unit = +b.dataset.unit; for (const x of $("dirUnit").children) x.setAttribute("aria-selected", String(x === b)); });
+  $("dirPane").addEventListener("click", e => { const b = e.target.closest("[data-dmove]"); if (b) dirStep(+b.dataset.dmove * DIR.unit); });
+  $("dirDate").addEventListener("change", e => { const v = e.target.value; if (!v) return; if (v < "1800-01-01" || v > "2399-12-31") { showError("Поддерживаются даты с 1800 по 2399 год."); return; } DIR.date = v; runDirection(); });
+  $("dirSteps").addEventListener("click", e => { const b = e.target.closest("[data-dstep]"); if (b) dirStep(+b.dataset.dstep); });
+}
+function dirStep(k) {
+  {
+    if (k === 0) DIR.date = todayStr();
+    else {
+      const [y, mo, d] = (DIR.date || todayStr()).split("-").map(Number);
+      let m = mo - 1 + k, yy = y + Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+      const dim = new Date(Date.UTC(yy, m + 1, 0)).getUTCDate();
+      DIR.date = `${String(yy).padStart(4, "0")}-${pad(m + 1)}-${pad(Math.min(d, dim))}`;
+    }
+    runDirection();
+  }
+}
+function syncWheelFrom() {
+  for (const b of $("wheelFrom").querySelectorAll("button")) { const on = b.dataset.wf === WHEEL_FROM; b.setAttribute("aria-checked", String(on)); b.setAttribute("aria-selected", String(on)); }
+}
+function initWheelFrom() {
+  syncWheelFrom();
+  $("wheelFrom").addEventListener("click", e => {
+    const b = e.target.closest("[data-wf]"); if (!b || b.dataset.wf === WHEEL_FROM) return;
+    WHEEL_FROM = b.dataset.wf; try { lsSet("natal-wheel", WHEEL_FROM); } catch (err) {}
+    syncWheelFrom(); if (RERENDER) RERENDER();
+  });
+}
+// После построения форма сворачивается в карточку с кнопкой «Изменить»
+let FORM_OPEN = true;
+const shortDeg = lon => { const i = Math.floor(norm(lon) / 30), m = Math.floor((norm(lon) % 30) * 60); return `${Math.floor(m / 60)}°${pad(m % 60)}′<span class="sg el${i % 4}">${SIGN_GLYPHS[i]}${VS15}</span>`; };
+function formCardHtml(ch) {
+  const nm = ch.name || "Без имени", ini = (ch.name || "?").trim().charAt(0).toUpperCase();
+  const when = ch.unknown ? `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y} · время неизвестно` : `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y} · ${pad(ch.w.h)}:${pad(ch.w.mi)}`;
+  return `<span class="ava" aria-hidden="true">${esc(ini)}</span><div class="fc-txt"><b>${esc(nm)}</b><small>${when} · ${esc(String(ch.place).split(",")[0])}</small>
+    <small class="fc-h">${ch.houses ? `${ch.houses.system} · ASC ${shortDeg(ch.houses.asc)} · MC ${shortDeg(ch.houses.mc)}` : "Без домов"}</small></div>
+    <button type="button" class="pill" id="editBtn">Изменить</button>`;
+}
+function syncFormVis() {
+  const nat = MODE === "natal";
+  $("form").hidden = !nat || !FORM_OPEN;
+  $("formCard").hidden = !nat || FORM_OPEN || !$("formCard").innerHTML;
+  $("newBtn").hidden = !nat;
+}
+function newChart() {
+  for (const id of ["name", "date", "time", "place", "lat", "lon", "off"]) $(id).value = "";
+  $("notime").checked = false; $("time").disabled = false; $("oldstyle").checked = false;
+  selected = null; $("chosen").textContent = ""; tzTouched = false; $("more").open = false;
+  syncOldStyle();
+  CUR_STATE = null; LAST_CHART = null; RERENDER = null; EDIT_ID = null;
+  $("out").innerHTML = ""; $("notes").innerHTML = ""; $("formCard").innerHTML = "";
+  FORM_OPEN = true; syncFormVis(); window.scrollTo(0, 0); $("name").focus();
+}
+function initFormCard() {
+  $("formCard").addEventListener("click", e => { if (!e.target.closest("#editBtn")) return; FORM_OPEN = true; syncFormVis(); $("form").scrollIntoView({ block: "start", behavior: "smooth" }); });
+  $("newBtn").addEventListener("click", () => { if (MODE !== "natal") setMode("natal"); newChart(); });
+}
+function wheelBox(svg) {
+  return `<div class="wheel"><div class="wheel-svg" role="button" tabindex="0" aria-label="Открыть круг на весь экран">${svg}</div><button type="button" class="zoom-btn" aria-label="Открыть круг на весь экран">⤢</button></div><p class="hint wheel-hint">Нажмите на колесо, чтобы увеличить.</p>`;
+}
+/* ---------- Полноэкранный круг: масштаб двумя пальцами, сдвиг, нажатие на планету ---------- */
+const ZM = { s: 1, x: 0, y: 0, ptrs: new Map(), start: null, tap: null };
+function zoomApply() { $("zoomInner").style.transform = `translate(${ZM.x}px, ${ZM.y}px) scale(${ZM.s})`; }
+function zoomOpen(svgEl) {
+  $("zoomInner").innerHTML = svgEl.outerHTML;
+  ZM.s = 1; ZM.x = 0; ZM.y = 0; zoomApply(); zoomFocus(null);
+  $("zoom").hidden = false; document.body.classList.add("noscroll");
+  $("zoomClose").focus();
+}
+function zoomClose() { $("zoom").hidden = true; document.body.classList.remove("noscroll"); $("zoomInner").innerHTML = ""; }
+function zoomFocus(g) {
+  const svg = $("zoomInner").querySelector("svg"), info = $("zoomInfo");
+  if (svg) for (const x of svg.querySelectorAll(".hl")) x.classList.remove("hl");
+  if (!g || !svg) { if (svg) svg.classList.remove("focus"); info.hidden = true; return; }
+  const id = g.dataset.pt;
+  svg.classList.add("focus"); g.classList.add("hl");
+  let n = 0;
+  for (const l of svg.querySelectorAll(".w-asp")) if (l.dataset.p1 === id || l.dataset.p2 === id) { l.classList.add("hl"); n++; }
+  info.textContent = `${g.dataset.info} · аспектов: ${n}`; info.hidden = false;
+}
+function initZoom() {
+  $("out").addEventListener("click", e => {
+    const w = e.target.closest(".wheel"); if (!w || !(e.target.closest(".wheel-svg") || e.target.closest(".zoom-btn"))) return;
+    const svg = w.querySelector("svg"); if (svg) zoomOpen(svg);
+  });
+  $("out").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("wheel-svg")) { e.preventDefault(); zoomOpen(e.target.querySelector("svg")); } });
+  $("zoomClose").addEventListener("click", zoomClose);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("zoom").hidden) zoomClose(); });
+  const st = $("zoomStage");
+  const dist = () => { const [a, b] = [...ZM.ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  const mid = () => { const [a, b] = [...ZM.ptrs.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
+  const zoomAt = (cx, cy, ns) => {
+    ns = Math.min(6, Math.max(1, ns));
+    const r = st.getBoundingClientRect(), ox = cx - r.left - r.width / 2, oy = cy - r.top - r.height / 2;
+    ZM.x = ox - (ox - ZM.x) * ns / ZM.s; ZM.y = oy - (oy - ZM.y) * ns / ZM.s; ZM.s = ns;
+    if (ZM.s === 1) { ZM.x = 0; ZM.y = 0; }
+    zoomApply();
+  };
+  st.addEventListener("pointerdown", e => {
+    st.setPointerCapture(e.pointerId);
+    ZM.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ZM.ptrs.size === 1) ZM.tap = { x: e.clientX, y: e.clientY, t: Date.now(), target: e.target };
+    else ZM.tap = null;
+    ZM.start = { s: ZM.s, x: ZM.x, y: ZM.y, d: ZM.ptrs.size === 2 ? dist() : 0, m: ZM.ptrs.size === 2 ? mid() : { x: e.clientX, y: e.clientY } };
+  });
+  st.addEventListener("pointermove", e => {
+    if (!ZM.ptrs.has(e.pointerId)) return;
+    ZM.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ZM.ptrs.size === 2 && ZM.start.d) {
+      const m = mid(), ns = Math.min(6, Math.max(1, ZM.start.s * dist() / ZM.start.d));
+      const r = st.getBoundingClientRect(), ox = ZM.start.m.x - r.left - r.width / 2, oy = ZM.start.m.y - r.top - r.height / 2;
+      ZM.x = ox - (ox - ZM.start.x) * ns / ZM.start.s + (m.x - ZM.start.m.x); ZM.y = oy - (oy - ZM.start.y) * ns / ZM.start.s + (m.y - ZM.start.m.y); ZM.s = ns;
+      zoomApply();
+    } else if (ZM.ptrs.size === 1 && ZM.s > 1) {
+      ZM.x = ZM.start.x + e.clientX - ZM.start.m.x; ZM.y = ZM.start.y + e.clientY - ZM.start.m.y; zoomApply();
+    }
+  });
+  const up = e => {
+    if (!ZM.ptrs.has(e.pointerId)) return;
+    ZM.ptrs.delete(e.pointerId);
+    const tp = ZM.tap; ZM.tap = null;
+    if (tp && Math.hypot(e.clientX - tp.x, e.clientY - tp.y) < 8 && Date.now() - tp.t < 400) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      zoomFocus(el && el.closest ? el.closest("[data-pt]") : null);
+    }
+    if (ZM.ptrs.size === 1) { const [v] = [...ZM.ptrs.values()]; ZM.start = { s: ZM.s, x: ZM.x, y: ZM.y, d: 0, m: v }; }
+  };
+  st.addEventListener("pointerup", up); st.addEventListener("pointercancel", up);
+  st.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, ZM.s * (e.deltaY < 0 ? 1.15 : 1 / 1.15)); }, { passive: false });
+}
+function initAspView() {
+  $("out").addEventListener("click", e => {
+    const b = e.target.closest("[data-av]"); if (!b) return;
+    ASP_VIEW = b.dataset.av; try { lsSet("natal-asp-view", ASP_VIEW); } catch (err) {}
+    const sec = b.closest(".asp-sec");
+    for (const x of sec.querySelectorAll("[data-av]")) x.setAttribute("aria-selected", String(x.dataset.av === ASP_VIEW));
+    sec.querySelector(".asp-grid").hidden = ASP_VIEW !== "grid"; sec.querySelector(".asp-list").hidden = ASP_VIEW !== "list";
+  });
+}
+function initModes() {
+  $("modes").addEventListener("click", e => {
+    const b = e.target.closest("[data-mode]"); if (!b) return;
+    const m = b.dataset.mode === "transit" ? LAST_FC : b.dataset.mode;   // «Прогноз» открывает последний вид прогноза
+    if (m !== MODE) setMode(m);
+  });
+  $("fcSeg").addEventListener("click", e => { const b = e.target.closest("[data-fc]"); if (b && b.dataset.fc !== MODE) setMode(b.dataset.fc); });
+  initReturns();
+  initDirections();
+  initWheelFrom();
+  initAspView();
+  initZoom();
+  initFormCard(); initSheet();
+  let devTz = "Europe/Moscow";
+  try { devTz = Intl.DateTimeFormat().resolvedOptions().timeZone || devTz; } catch (e) {}
+  TR.tz = devTz;
+  $("trTz").innerHTML = $("tz").innerHTML;
+  if (![...$("trTz").options].some(o => o.value === devTz)) $("trTz").insertAdjacentHTML("afterbegin", `<option>${esc(devTz)}</option>`);
+  syncTrInputs();
+  $("trBase").addEventListener("change", e => setForecastBase(e.target.value));
+  TR.unit = "day";
+  $("trUnit").addEventListener("click", e => { const b = e.target.closest("[data-unit]"); if (!b) return; TR.unit = b.dataset.unit; for (const x of $("trUnit").children) x.setAttribute("aria-selected", String(x === b)); });
+  $("trPane").addEventListener("click", e => { const b = e.target.closest("[data-tmove]"); if (!b) return; stepTransit((+b.dataset.tmove > 0 ? "+" : "-") + TR.unit); runTransit(); });
+  for (const id of ["trDate", "trTime", "trTz"]) $(id).addEventListener("change", () => { if (trFromInputs()) runTransit(); });
+  $("trSteps").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (!b) return; stepTransit(b.dataset.step); runTransit(); });
+  for (const side of ["a", "b"]) $("syn" + side.toUpperCase()).addEventListener("change", e => {
+    if (e.target.value === "__new") { e.target.value = SYN[side] || ""; if (!SYN[side]) e.target.selectedIndex = -1; synFormOpen(side); return; }
+    SYN[side] = e.target.value; synFormClose(); runSynastry();
+  });
+  initSynForm();
+  $("synSwap").addEventListener("click", () => { [SYN.a, SYN.b] = [SYN.b, SYN.a]; $("synA").value = SYN.a || ""; $("synB").value = SYN.b || ""; runSynastry(); });
+}
+
+// Тема: по умолчанию светлая, выбор запоминается на этом устройстве.
+const THEME_KEY = "natal-theme";
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  const b = $("themeBtn"); if (b) b.textContent = t === "dark" ? "☀ Светлая" : "☾ Тёмная";
+}
+function initTheme() {
+  let t = "light";
+  try { if (lsGet(THEME_KEY) === "dark") t = "dark"; } catch (e) {}
+  applyTheme(t);
+  $("themeBtn").addEventListener("click", () => {
+    const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(n);
+    try { lsSet(THEME_KEY, n); } catch (e) {}
+  });
+}
+async function boot() {
+  initTheme();
+  initOrbs();
+  initBackup();
+  try {
+    const [meta, cities, tzx] = await Promise.all([
+      fetch("ephem-meta.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch("cities.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch("tz-extra.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+    ]);
+    EPH.meta = meta;
+    CITIES = prepCities(cities);
+    TZX = tzx;
+    await ensureEph([2448057.9]);   // век примера (1990)
+  } catch (err) {
+    $("out").innerHTML = `<div class="note err">Не удалось загрузить таблицы эфемерид (${esc(err.message)}). Обновите страницу.</div>`;
+    return;
+  }
+  initForm();
+  initModes();
+  for (const ev of ["input", "change"]) $("date").addEventListener(ev, syncOldStyle);
+  // Пример при открытии
+  $("date").value = "1990-06-15"; $("time").value = "14:30";
+  const moscow = searchCities("Москва")[0];
+  $("place").value = "Москва"; setSelected(moscow, "Москва");
+  syncOldStyle();
+  renderChart(buildChart(readInput()), true);
+  renderSaved();
+  cloudInit(() => {
+    // из облака пришли карты и настройки — применяем их
+    ORBSET = loadOrbSet();
+    SHOW_MINOR = lsGet("natal-show-minor") === "1"; SHOW_ANG = lsGet("natal-show-ang") === "1";
+    TR_SLOW = lsGet("natal-tr-slow") === "1"; SYN_SEPT = lsGet("natal-syn-sept") === "1";
+    if (["transit", "solar", "lunar", "direction"].includes(lsGet("natal-last-fc"))) LAST_FC = lsGet("natal-last-fc");
+    try { RET.place = JSON.parse(lsGet("natal-ret-place") || "null"); } catch (e) {}
+    RET.dbl = lsGet("natal-ret-dbl") === "1";
+    WHEEL_FROM = lsGet("natal-wheel") === "aries" ? "aries" : "asc"; syncWheelFrom();
+    if (RET.place) { $("retPlace").value = RET.place.label; $("retChosen").textContent = retPlaceLine(RET.place); }
+    applyTheme(lsGet(THEME_KEY) === "dark" ? "dark" : "light");
+    renderSaved();
+    if (MODE === "settings") renderOrbs();
+    else if (RERENDER) RERENDER();
+  });
+  $("go").disabled = false;
+  window.__natal = { buildChart, chartCore, lastReturn, solveReturn, solarArc, findCrossAspects, localToUtc, planetPositions, calcHouses, searchCities, nearestCity, julianToGregorian, ensureEph,
+    loadAll: () => Promise.all(EPH.meta.chunks.map((_, i) => loadChunk(i))) };
+}
+boot();
+</script>
+
+</body>
+</html>
