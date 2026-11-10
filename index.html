@@ -693,7 +693,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "63";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "64";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -1620,7 +1620,7 @@ let ASP_VIEW = lsGet("natal-asp-view") === "grid" ? "grid" : "list";
 function aspRows(aspects, tagA = "", tagB = "", tx = false) {
   const firstMinor = aspects.findIndex(a => !MAJOR.has(a.key));
   return aspects.map((a, k) => (k === firstMinor ? `<tr class="grp"><td colspan="4">Минорные аспекты</td></tr>` : "") +
-    `<tr title="${esc(tagA)} ${esc(a.a.name)} — ${a.name.toLowerCase()} — ${esc(tagB)} ${esc(a.b.name)}"${tx ? txAttr([txKey.as(a.a.key, a.b.key, a.key)], `${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`) : ""}><td class="ag"><span class="g${tagA ? " out" : ""}">${pointGlyph(a.a)}</span><b class="${a.kind || ""}">${a.glyph}</b><span class="g">${pointGlyph(a.b)}</span></td>` +
+    `<tr title="${esc(tagA)} ${esc(a.a.name)} — ${a.name.toLowerCase()} — ${esc(tagB)} ${esc(a.b.name)}"${tx ? txAttr(txAspKeys(a.a.key, a.b.key, a.key), `${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`) : ""}><td class="ag"><span class="g${tagA ? " out" : ""}">${pointGlyph(a.a)}</span><b class="${a.kind || ""}">${a.glyph}</b><span class="g">${pointGlyph(a.b)}</span></td>` +
     `<td class="an2">${a.name.toLowerCase()}${tx ? '<span class="txd"></span>' : ""}</td><td class="n">${fmtOrb(a.orb)}</td><td class="muted ap">${a.applying === null || a.applying === undefined ? "" : a.applying ? "сход." : "расх."}</td></tr>`).join("");
 }
 function aspSection(title, gridHtml, aspects, tagA, tagB, tx = false) {
@@ -1645,7 +1645,7 @@ function aspectGrid(ch, tx = false) {
     for (let j = 0; j < pts.length - 1; j++) {
       if (j >= i) { html += j === i ? '<td class="x"></td>' : "<td></td>"; continue; }
       const a = cell.get(`${i}:${j}`);
-      html += a ? `<td class="${a.kind || ""}${tx && txGet(txKey.as(a.a.key, a.b.key, a.key)) ? " has-tx" : ""}"${tx ? ` data-txc="${txKey.as(a.a.key, a.b.key, a.key)}" data-txt="${esc(`${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`)}"` : ""} title="${esc(a.a.name)} — ${a.name.toLowerCase()} — ${esc(a.b.name)}, орбис ${fmtOrb(a.orb)}"><b>${a.glyph}</b><small>${fmtOrb(a.orb)}</small></td>` : "<td></td>";
+      html += a ? `<td class="${a.kind || ""}${tx && txAspKeys(a.a.key, a.b.key, a.key).some(k => txGet(k)) ? " has-tx" : ""}"${tx ? ` data-txc="${txAspKeys(a.a.key, a.b.key, a.key).join(" ")}" data-txt="${esc(`${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`)}"` : ""} title="${esc(a.a.name)} — ${a.name.toLowerCase()} — ${esc(a.b.name)}, орбис ${fmtOrb(a.orb)}"><b>${a.glyph}</b><small>${fmtOrb(a.orb)}</small></td>` : "<td></td>";
     }
     html += "</tr>";
   }
@@ -2266,7 +2266,7 @@ function initBackup() {
 
 /* ---------- Толкования (Т-25): только собственные тексты Kate ----------
    Позиция → текст. Ключи: ps.<точка>.<знак 0–11> — планета в знаке, ph.<точка>.<дом 1–12> — планета в доме,
-   as.<точка>.<точка>.<аспект> — аспект пары (точки по порядку ORB_POINTS), rh.<дом>.<дом> — управитель дома в доме,
+   as.<точка>.<точка>.<аспект> — аспект пары (точки по порядку ORB_POINTS; as.<точка>.snode.<аспект> — к Южному узлу), rh.<дом>.<дом> — управитель дома в доме,
    asc.<знак> — асцендент в знаке. Значение { t: текст, u: время правки }; удаление = пустой t (чтобы слияние с облаком
    не вернуло текст). Хранится в localStorage и в облаке (data/users/<id>/texts-<группа>), входит в резервную копию. */
 const TX_STORE = "natal-texts-v1";
@@ -2281,14 +2281,14 @@ const txKey = {
   pc: (p, i, h) => `pc.${p}.${SIGN_EN[i]}.${h}`,
   sg: i => `sg.${i}`, ps: (p, i) => `ps.${p}.${i}`, ph: (p, h) => `ph.${p}.${h}`, rh: (h, x) => `rh.${h}.${x}`, asc: i => `asc.${i}`,
   hs: h => `hs.${h}`, hc: (h, i) => `hc.${h}.${i}`,
-  as: (a, b, asp) => { const ia = ORB_POINTS.indexOf(a), ib = ORB_POINTS.indexOf(b); return ia <= ib ? `as.${a}.${b}.${asp}` : `as.${b}.${a}.${asp}`; },
+  as: (a, b, asp) => { if (a === "snode" || b === "snode") return `as.${a === "snode" ? b : a}.snode.${asp}`; const ia = ORB_POINTS.indexOf(a), ib = ORB_POINTS.indexOf(b); return ia <= ib ? `as.${a}.${b}.${asp}` : `as.${b}.${a}.${asp}`; },
 };
 const TX_TYPES = [   // [префикс, название, всего позиций]
   ["pl", "Планета (ключевые слова)", TX_POINTS.length], ["pm", "Планета (значение)", TX_POINTS.length],
   ["sg", "Знак", 12],
   ["pc", "Планета в знаке и доме", TX_PERSONAL.length * 144],
   ["ps", "Планета в знаке", TX_POINTS.length * 12], ["ph", "Планета в доме", TX_POINTS.length * 12],
-  ["as", "Аспекты", ORB_POINTS.length * (ORB_POINTS.length - 1) / 2 * ASPECTS.length],
+  ["as", "Аспекты", ORB_POINTS.length * (ORB_POINTS.length - 1) / 2 * ASPECTS.length + (ORB_POINTS.length - 1) * MAJOR.size],
   ["hs", "Дом (значение)", 12], ["hc", "Куспид дома в знаке", 144],
   ["rh", "Управитель дома в доме", 144], ["asc", "Асцендент в знаке", 12],
 ];
@@ -2305,6 +2305,7 @@ function txValidKey(k) {
   if (s[0] === "hs") return s.length === 2 && house(s[1]);
   if (s[0] === "hc") return s.length === 3 && house(s[1]) && sign(s[2]);
   if (s[0] === "sg") return s.length === 2 && sign(s[1]);
+  if (s[0] === "as" && s[2] === "snode") return s.length === 4 && ORB_POINTS.includes(s[1]) && s[1] !== "node" && MAJOR.has(s[3]);
   if (s[0] === "as") return s.length === 4 && ORB_POINTS.includes(s[1]) && ORB_POINTS.includes(s[2]) && s[1] !== s[2] &&
     ORB_POINTS.indexOf(s[1]) < ORB_POINTS.indexOf(s[2]) && ASPECTS.some(a => a[0] === s[3]);
   return false;
@@ -2355,6 +2356,9 @@ async function txLoadCombos() {
   // Планеты сами по себе (pm; ключевые слова Kate остаются в pl): texts-planets.json {"planets":{"sun":…}}
   const pd = await fetch("texts-planets.json").then(r => r.ok ? r.json() : null).catch(() => null);
   for (const [pk, t] of Object.entries((pd && pd.planets) || {})) if (typeof t === "string" && txValidKey(txKey.pm(pk))) { SEED[txKey.pm(pk)] = t.trim(); n++; }
+  // Аспекты (трактовки Kate, 374): texts-aspects.json {"texts":{"as.sun.moon.conjunction":…}}, сборка: gen_aspects.py
+  const ad = await fetch("texts-aspects.json").then(r => r.ok ? r.json() : null).catch(() => null);
+  for (const [k, t] of Object.entries((ad && ad.texts) || {})) if (typeof t === "string" && txValidKey(k)) { SEED[k] = t.trim(); n++; }
   const hd = await fetch("texts-houses.json").then(r => r.ok ? r.json() : null).catch(() => null);
   if (hd) {
     for (const [h, t] of Object.entries(hd.houses || {})) if (typeof t === "string" && txValidKey(txKey.hs(h))) { SEED[txKey.hs(h)] = t.trim(); n++; }
@@ -2461,6 +2465,13 @@ function txCloudNote() {
   el.hidden = !TX_TOOBIG.length;
   el.textContent = TX_TOOBIG.length ? "Часть текстов слишком длинная для облака и хранится только на этом устройстве. Сократите самые длинные тексты или сделайте резервную копию." : "";
 }
+// Тексты аспекта: сам аспект, а для аспекта к Северному узлу — ещё парный аспект к Южному (узлы напротив: трин к Северному = секстиль к Южному)
+const NODE_PAIR = { conjunction: "opposition", sextile: "trine", square: "square", trine: "sextile", opposition: "conjunction" };
+function txAspKeys(a, b, asp) {
+  const k = txKey.as(a, b, asp), o = a === "node" ? b : b === "node" ? a : null;
+  const s = o && NODE_PAIR[asp] ? txKey.as(o, "snode", NODE_PAIR[asp]) : null;
+  return s ? [k, s] : [k];
+}
 // Строка таблицы с толкованиями: data-tx — ключи через пробел, data-txt — заголовок окна
 function txAttr(keys, title) {
   const has = keys.some(k => txGet(k));
@@ -2521,9 +2532,9 @@ function txSection() {
         ${edit(`data-txopen="keys" data-keys="${keys.join(" ")}" data-txt="${ROMAN[i]} дом"`)}</div></details>`);
     });
   }
-  const asp = ch.aspects.map(a => [a, txKey.as(a.a.key, a.b.key, a.key)]).filter(([, k]) => txGet(k)).map(([a, k]) =>
-    `<details class="tx-item"${txOpenAttr("a:" + k)}><summary><h3><span class="g">${pointGlyph(a.a)}</span> <b class="${a.kind || ""}">${a.glyph}</b> <span class="g">${pointGlyph(a.b)}</span> ${esc(`${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`)}</h3></summary><div class="tx-body">${para(txGet(k))}
-      ${edit(`data-txopen="keys" data-keys="${k}" data-txt="${esc(`${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`)}"`)}</div></details>`).join("");
+  const asp = ch.aspects.map(a => [a, txAspKeys(a.a.key, a.b.key, a.key)]).filter(([, ks]) => ks.some(k => txGet(k))).map(([a, ks]) =>
+    `<details class="tx-item"${txOpenAttr("a:" + ks[0])}><summary><h3><span class="g">${pointGlyph(a.a)}</span> <b class="${a.kind || ""}">${a.glyph}</b> <span class="g">${pointGlyph(a.b)}</span> ${esc(`${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`)}</h3></summary><div class="tx-body">${ks.filter(k => txGet(k)).map((k, i) => (i || !txGet(ks[0]) ? `<b class="tx-sub">${esc(txLabel(k))}</b>` : "") + para(txGet(k))).join("")}
+      ${edit(`data-txopen="keys" data-keys="${ks.join(" ")}" data-txt="${esc(`${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`)}"`)}</div></details>`).join("");
   el.innerHTML = `<div class="tx-head"><button type="button" class="pill" id="txFold" aria-pressed="${TX_FOLD}">${TX_FOLD ? "▸ Развернуть всё" : "▾ Свернуть всё"}</button></div><h2>Толкование</h2>
     <h3 class="tx-grp">Планеты</h3>${planets}
     ${H ? `<h3 class="tx-grp">Дома</h3>${other.length ? other.join("") : '<p class="hint">Текстов о домах этой карты пока нет. Нажмите на строку в таблице «Дома», чтобы написать.</p>'}` : ""}
@@ -2531,7 +2542,7 @@ function txSection() {
 }
 function txRefresh() {
   for (const tr of document.querySelectorAll("#out tr[data-tx]")) tr.classList.toggle("has-tx", tr.dataset.tx.split(" ").some(k => txGet(k)));
-  for (const td of document.querySelectorAll("#out td[data-txc]")) td.classList.toggle("has-tx", !!txGet(td.dataset.txc));
+  for (const td of document.querySelectorAll("#out td[data-txc]")) td.classList.toggle("has-tx", td.dataset.txc.split(" ").some(k => txGet(k)));
   txSection();
   txCounts();
 }
@@ -2730,7 +2741,7 @@ function initTexts() {
     if (tr && tr.dataset.txpl) { const [pk, si, hh] = tr.dataset.txpl.split("."); txPlanetOpen(pk, +si, +hh, tr.dataset.txt, tr); return; }
     if (tr) { itpOpen(tr.dataset.tx.split(" "), tr.dataset.txt, tr); return; }
     const td = e.target.closest("td[data-txc]");
-    if (td) itpOpen([td.dataset.txc], td.dataset.txt, td);
+    if (td) itpOpen(td.dataset.txc.split(" "), td.dataset.txt, td);
   });
   $("out").addEventListener("keydown", e => {
     if (e.key !== "Enter" && e.key !== " ") return;
