@@ -693,7 +693,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "60";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "61";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -1690,10 +1690,17 @@ function showError(msg) { $("notes").innerHTML = `<div class="note err">${esc(ms
 
 /* ---------- Форма ---------- */
 let selected = null, suggItems = [], suggIdx = -1, tzTouched = false;
+// Пояс в списке: Safari и Chrome дают в Intl старые имена (Europe/Kiev), а в базе городов новые (Europe/Kyiv).
+// Если имени нет среди вариантов, присвоение молча не срабатывает (Safari оставлял первый пункт, Africa/Abidjan) — добавляем вариант.
+function setTzSel(sel, tz) {
+  if (!tz) return;
+  if (![...sel.options].some(o => o.value === tz)) sel.insertAdjacentHTML("afterbegin", `<option>${esc(tz)}</option>`);
+  sel.value = tz;
+}
 function setSelected(c, label) {
   selected = c ? { label, lat: c.lat, lon: c.lon, tz: c.tz, cc: c.cc } : null;
   $("chosen").textContent = c ? `${label}, ${regionName(c.cc)} · ${c.lat.toFixed(4)}, ${c.lon.toFixed(4)} · ${c.tz}` : "";
-  if (c) $("tz").value = c.tz;
+  if (c) setTzSel($("tz"), c.tz);
 }
 function showSugg(list, q) {
   suggItems = list; suggIdx = -1;
@@ -1750,7 +1757,7 @@ function readInput() {
         : q ? `Город «${q}» не найден. Проверьте название или задайте координаты вручную.` : "Укажите место рождения.");
     }
     ({ lat, lon } = selected); place = `${selected.label}, ${regionName(selected.cc)}`;
-    tz = $("tz").value || selected.tz;
+    tz = (tzTouched && $("tz").value) || selected.tz;   // пояс города, если его не меняли вручную
   }
   if (!$("oldstyle").checked && RU_ZONES.has(tz) && (y < 1918 || (y === 1918 && (mo < 2 || (mo === 2 && d < 14)))))
     notes.push("До 14.02.1918 в России даты записывали по старому стилю. Если дата взята из документа того времени, отметьте «дата по старому стилю»: разница 12–13 дней.");
@@ -1794,7 +1801,7 @@ function initForm() {
   }, 150));
   for (const id of ["lat", "lon"]) $(id).addEventListener("change", () => {
     const lat = Number($("lat").value.replace(",", ".")), lon = Number($("lon").value.replace(",", "."));
-    if ($("lat").value && $("lon").value && isFinite(lat) && isFinite(lon)) ensureCities().then(() => { $("tz").value = nearestCity(lat, lon).tz; tzTouched = false; }).catch(() => {});
+    if ($("lat").value && $("lon").value && isFinite(lat) && isFinite(lon)) ensureCities().then(() => { setTzSel($("tz"), nearestCity(lat, lon).tz); tzTouched = false; }).catch(() => {});
   });
   $("tz").addEventListener("change", () => { tzTouched = true; });
   $("notime").addEventListener("change", e => { $("time").disabled = e.target.checked; });
@@ -1872,7 +1879,7 @@ function applyFormState(st) {
   $("place").value = st.place || ""; selected = st.selected || null;
   $("chosen").textContent = selected ? `${selected.label}, ${regionName(selected.cc)} · ${selected.lat.toFixed(4)}, ${selected.lon.toFixed(4)} · ${selected.tz}` : "";
   $("lat").value = st.lat || ""; $("lon").value = st.lon || ""; $("off").value = st.off || "";
-  if (st.tz) $("tz").value = st.tz; tzTouched = !!st.tzTouched;
+  setTzSel($("tz"), (st.selected && !st.tzTouched && st.selected.tz) || st.tz); tzTouched = !!st.tzTouched;
   $("more").open = !!(st.lat || st.off || st.tzTouched);
   syncOldStyle();
 }
@@ -2786,7 +2793,7 @@ function setMode(m) {
 }
 function syncTrInputs() {
   const w = wallOf(TR.utc, TR.tz);
-  $("trDate").value = `${String(w.y).padStart(4, "0")}-${pad(w.mo)}-${pad(w.d)}`; $("trTime").value = `${pad(w.h)}:${pad(w.mi)}`; $("trTz").value = TR.tz;
+  $("trDate").value = `${String(w.y).padStart(4, "0")}-${pad(w.mo)}-${pad(w.d)}`; $("trTime").value = `${pad(w.h)}:${pad(w.mi)}`; setTzSel($("trTz"), TR.tz);
 }
 function trFromInputs() {
   const dv = $("trDate").value, tv = $("trTime").value || "12:00";
