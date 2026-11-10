@@ -693,7 +693,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "61";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "62";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -1080,20 +1080,22 @@ function calcHouses(jd, lat, lon) {
   const c = new Array(12);
   c[0] = asc; c[9] = mc;
   const warnings = [];
-  let system = "Плацидус";
-  if (Math.abs(lat) >= 90 - eps) {
-    system = "Порфирий";
-    warnings.push(`Широта ${lat.toFixed(2)}° за полярным кругом: система Плацидуса здесь не определена, дома рассчитаны по системе Порфирия.`);
-    const a1 = norm(asc - mc), a2 = norm(mc + 180 - asc);
-    c[10] = norm(mc + a1 / 3); c[11] = norm(mc + 2 * a1 / 3);
-    c[1] = norm(asc + a2 / 3); c[2] = norm(asc + 2 * a2 / 3);
-  } else {
-    for (const h of [11, 12, 2, 3]) c[h - 1] = placidusCusp(armc, lat, eps, h);
+  let system = "Плацидус", eq = false;
+  if (Math.abs(lat) >= EQUAL_FROM_LAT(eps)) {
+    // Северные (и южные) карты от 60° — равнодомная система (Кейт, 10.11.2026):
+    // куспиды через 30° от асцендента, MC остаётся своей точкой и рисуется отдельной осью
+    system = "Равнодомная"; eq = true;
+    warnings.push(`Широта ${Math.abs(lat).toFixed(2)}° — выше 60°: дома рассчитаны по равнодомной системе (по 30° от асцендента).`);
+    for (let i = 1; i < 12; i++) c[i] = norm(asc + 30 * i);
+    return { cusps: c, asc, mc, armc, eps, system, eq, warnings };
   }
+  for (const h of [11, 12, 2, 3]) c[h - 1] = placidusCusp(armc, lat, eps, h);
   c[3] = norm(mc + 180); c[6] = norm(asc + 180);
   c[4] = norm(c[10] + 180); c[5] = norm(c[11] + 180); c[7] = norm(c[1] + 180); c[8] = norm(c[2] + 180);
-  return { cusps: c, asc, mc, armc, eps, system, warnings };
+  return { cusps: c, asc, mc, armc, eps, system, eq, warnings };
 }
+// Граница равнодомной системы: 60° северной и южной широты (выбор Кейт 10.11.2026; за полярным кругом Плацидус не определён вовсе)
+const EQUAL_FROM_LAT = () => 60;
 function houseOf(cusps, lon) {
   lon = norm(lon);
   for (let i = 0; i < 12; i++) {
@@ -1457,9 +1459,10 @@ function renderSvg(ch, size = 600, opt = {}) {
     const ln = d % 10 === 0 ? 8 : d % 5 === 0 ? 5 : 3;
     o.push(line(pt(d, R_SIGN), pt(d, R_SIGN + ln * s), "w-tick"));
   }
-  const c = ch.houses ? ch.houses.cusps : [];
+  const c = ch.houses ? ch.houses.cusps : [], EQ = !!(ch.houses && ch.houses.eq);
+  const isAx = i => EQ ? i % 6 === 0 : i % 3 === 0;   // в равнодомной системе MC/IC не на куспидах
   for (let i = 0; i < c.length; i++) {
-    const axis = i % 3 === 0;
+    const axis = isAx(i);
     o.push(line(pt(c[i], R_ASP), pt(c[i], R_OUT + (axis ? 14 * s : 0)), axis ? "w-axis" : "w-cusp"));
     const mid = c[i] + norm(c[(i + 1) % 12] - c[i]) / 2;
     const n = pt(mid, R_ASP + HN_R * s);
@@ -1467,8 +1470,17 @@ function renderSvg(ch, size = 600, opt = {}) {
   }
   // Градусы куспидов за кругом, точно на продолжении линии куспида; у осей вместе с подписью оси
   const AX = { 0: "ASC", 3: "IC", 6: "DSC", 9: "MC" };
+  const axLabel = (lon, name, title) => {
+    const th = (180 + lon - asc) * D2R, cs = Math.cos(th), sn = Math.sin(th), p = pt(lon, R_OUT + 18 * s);
+    const si = Math.floor(norm(lon) / 30), tot = Math.round((norm(lon) % 30) * 60), dg = Math.floor(tot / 60) % 30, mn = tot % 60;
+    return `<g><title>${title}: ${fmtDeg(lon)}</title><text x="${f(p[0])}" y="${f(p[1])}" class="w-cl ax" text-anchor="${cs > 0.35 ? "start" : cs < -0.35 ? "end" : "middle"}" dominant-baseline="${sn > 0.35 ? "auto" : sn < -0.35 ? "hanging" : "central"}"><tspan class="axn">${name}</tspan> ${dg}°${String(mn).padStart(2, "0")}′<tspan class="gl el${si % 4}">${SIGN_GLYPHS[si]}${VS15}</tspan></text></g>`;
+  };
+  if (EQ) for (const [lon, name] of [[ch.houses.mc, "MC"], [norm(ch.houses.mc + 180), "IC"]]) {
+    o.push(line(pt(lon, R_ASP), pt(lon, R_OUT + 14 * s), "w-axis"));
+    o.push(axLabel(lon, name, name));
+  }
   for (let i = 0; i < c.length; i++) {
-    const axis = i % 3 === 0, th = (180 + c[i] - asc) * D2R, cs = Math.cos(th), sn = Math.sin(th);
+    const axis = isAx(i), th = (180 + c[i] - asc) * D2R, cs = Math.cos(th), sn = Math.sin(th);
     const p = pt(c[i], R_OUT + (axis ? 18 : 6) * s);
     const anchor = cs > 0.35 ? "start" : cs < -0.35 ? "end" : "middle";
     const base = sn > 0.35 ? "auto" : sn < -0.35 ? "hanging" : "central";
@@ -1642,6 +1654,7 @@ function renderChart(full, example, ret = null) {
   const lab = { 0: "ASC", 3: "IC", 6: "DSC", 9: "MC" };
   const rulerTxt = c => signRulers(Math.floor(norm(c) / 30)).map(k => { const p = ch.planets.find(x => x.key === k); return `<span class="ru" title="${esc(p.name)} ${inHouse(p.house)}">${glyphOf(k)}&#8239;${ROMAN[p.house - 1]}</span>`; }).join('<span class="muted"> · </span>');
   const houseKeys = (c, i) => [txKey.hs(i + 1), txKey.hc(i + 1, signIdx(c)), ...signRulers(signIdx(c)).map(k => txKey.rh(i + 1, ch.planets.find(x => x.key === k).house)), ...(i === 0 ? [txKey.asc(signIdx(c))] : [])];
+  if (H && ch.houses.eq) { delete lab[3]; delete lab[9]; }
   const rowsH = H ? ch.houses.cusps.map((c, i) => `<tr${TXON ? txAttr(houseKeys(c, i), `${ROMAN[i]} дом`) : ""}><td>${ROMAN[i]}${lab[i] ? ` <small class="muted">${lab[i]}</small>` : ""}${TXON ? '<span class="txd"></span>' : ""}</td><td class="n">${shortDeg(c)}</td><td class="n">${rulerTxt(c)}</td></tr>`).join("") : "";
   const savedId = example ? null : findSaved(CUR_STATE);
   $("out").innerHTML = `
