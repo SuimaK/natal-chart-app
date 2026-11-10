@@ -693,7 +693,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "62";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "63";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -1082,20 +1082,50 @@ function calcHouses(jd, lat, lon) {
   const warnings = [];
   let system = "Плацидус", eq = false;
   if (Math.abs(lat) >= EQUAL_FROM_LAT(eps)) {
-    // Северные (и южные) карты от 60° — равнодомная система (Кейт, 10.11.2026):
-    // куспиды через 30° от асцендента, MC остаётся своей точкой и рисуется отдельной осью
-    system = "Равнодомная"; eq = true;
-    warnings.push(`Широта ${Math.abs(lat).toFixed(2)}° — выше 60°: дома рассчитаны по равнодомной системе (по 30° от асцендента).`);
-    for (let i = 1; i < 12; i++) c[i] = norm(asc + 30 * i);
-    return { cusps: c, asc, mc, armc, eps, system, eq, warnings };
+    // Северные (и южные) карты от 60° — «Джамаспа равнодомная», как в ZET (Кейт, 10.11.2026):
+    // куспид I по Джамаспе, остальные через 30°; MC остаётся своей точкой и рисуется отдельной осью
+    const j = jamaspaCusp1(jd, lat, lon);
+    if (j != null) {
+      system = "Джамаспа равнодомная";
+      for (let i = 0; i < 12; i++) c[i] = norm(j + 30 * i);
+    } else {
+      system = "Равнодомная";
+      warnings.push(`Широта ${Math.abs(lat).toFixed(2)}°: в этот день нет восхода или заката Солнца, система Джамаспа не определена. Дома рассчитаны по равнодомной системе от асцендента.`);
+      for (let i = 1; i < 12; i++) c[i] = norm(asc + 30 * i);
+    }
+    return { cusps: c, asc, mc, armc, eps, system, eq: true, warnings };
   }
   for (const h of [11, 12, 2, 3]) c[h - 1] = placidusCusp(armc, lat, eps, h);
   c[3] = norm(mc + 180); c[6] = norm(asc + 180);
   c[4] = norm(c[10] + 180); c[5] = norm(c[11] + 180); c[7] = norm(c[1] + 180); c[8] = norm(c[2] + 180);
   return { cusps: c, asc, mc, armc, eps, system, eq, warnings };
 }
-// Граница равнодомной системы: 60° северной и южной широты (выбор Кейт 10.11.2026; за полярным кругом Плацидус не определён вовсе)
+// Граница системы Джамаспа: 60° северной и южной широты (выбор Кейт 10.11.2026; за полярным кругом Плацидус не определён вовсе)
 const EQUAL_FROM_LAT = () => 60;
+// Джамаспа (как в ZET, сверено по двум картам Кейт): восход и закат — центр Солнца на истинном горизонте (без рефракции).
+// В момент восхода куспид I стоит на Солнце, в момент заката — напротив Солнца; между ними движется равномерно по времени
+// (днём и ночью со своей скоростью). Нет восхода или заката в пределах полутора суток (полярный день/ночь) — null.
+function sunAltDeg(jd, lat, lon) {
+  const lam = interp("sun", jd) * D2R, e = interp("eps", jd) * D2R;
+  const ra = Math.atan2(Math.sin(lam) * Math.cos(e), Math.cos(lam)), dec = Math.asin(Math.sin(e) * Math.sin(lam));
+  const lst = (gmst82Hours(jd) + interp("stcorr", jd) / 3600) * 15 * D2R + lon * D2R, f = lat * D2R;
+  return Math.asin(Math.sin(f) * Math.sin(dec) + Math.cos(f) * Math.cos(dec) * Math.cos(lst - ra)) * R2D;
+}
+function jamaspaCusp1(jd, lat, lon) {
+  try {
+    const step = 10 / 1440, cross = (t0, t1, up) => { let x = t0, y = t1;
+      for (let i = 0; i < 40; i++) { const m = (x + y) / 2; if ((sunAltDeg(m, lat, lon) < 0) === up) x = m; else y = m; } return (x + y) / 2; };
+    let prev = null, next = null;
+    for (let t = jd, v = sunAltDeg(t, lat, lon); t > jd - 1.5 && !prev; t -= step) {   // ближайшее событие до рождения
+      const u = sunAltDeg(t - step, lat, lon); if ((u < 0) !== (v < 0)) prev = { t: cross(t - step, t, u < 0), rise: u < 0 }; v = u; }
+    for (let t = jd, v = sunAltDeg(t, lat, lon); t < jd + 1.5 && !next; t += step) {   // и после
+      const u = sunAltDeg(t + step, lat, lon); if ((u < 0) !== (v < 0)) next = { t: cross(t, t + step, v < 0), rise: v < 0 }; v = u; }
+    if (!prev || !next || prev.rise === next.rise) return null;
+    const a = interp("sun", prev.t) + (prev.rise ? 0 : 180);
+    let b = interp("sun", next.t) + (next.rise ? 0 : 180); while (b < a) b += 360;
+    return norm(a + (b - a) * (jd - prev.t) / (next.t - prev.t));
+  } catch (e) { return null; }
+}
 function houseOf(cusps, lon) {
   lon = norm(lon);
   for (let i = 0; i < 12; i++) {
