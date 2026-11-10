@@ -691,7 +691,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "56";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "57";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -2221,8 +2221,9 @@ const TX_STORE = "natal-texts-v1";
 const SIGNS_IN = ["Овне","Тельце","Близнецах","Раке","Льве","Деве","Весах","Скорпионе","Стрельце","Козероге","Водолее","Рыбах"];
 const signIdx = lon => Math.floor(norm(lon) / 30);
 const TX_POINTS = BODIES.map(b => b[0]);   // 13 тел
+const TX_PSH = [...TX_POINTS, "snode"];   // Южный узел: отдельной точки в карте нет, тексты показываются вместе с Северным (знак и дом напротив)
 const SIGN_EN = ["aries","taurus","gemini","cancer","leo","virgo","libra","scorpio","sagittarius","capricorn","aquarius","pisces"];
-const TX_PERSONAL = ["sun", "moon", "mercury", "venus", "mars"];   // у них готовые сочетания «в знаке в доме» (Т-26)
+const TX_PERSONAL = ["sun", "moon", "mercury", "venus", "mars", "chiron", "node", "snode"];   // у них готовые сочетания «в знаке в доме» (Т-26)
 const txKey = {
   pl: p => `pl.${p}`, pm: p => `pm.${p}`,
   pc: (p, i, h) => `pc.${p}.${SIGN_EN[i]}.${h}`,
@@ -2233,20 +2234,20 @@ const txKey = {
 const TX_TYPES = [   // [префикс, название, всего позиций]
   ["pl", "Планета (ключевые слова)", TX_POINTS.length], ["pm", "Планета (значение)", TX_POINTS.length],
   ["sg", "Знак", 12],
-  ["pc", "Личная планета в знаке и доме", TX_PERSONAL.length * 144],
+  ["pc", "Планета в знаке и доме", TX_PERSONAL.length * 144],
   ["ps", "Планета в знаке", TX_POINTS.length * 12], ["ph", "Планета в доме", TX_POINTS.length * 12],
   ["as", "Аспекты", ORB_POINTS.length * (ORB_POINTS.length - 1) / 2 * ASPECTS.length],
   ["hs", "Дом (значение)", 12], ["hc", "Куспид дома в знаке", 144],
   ["rh", "Управитель дома в доме", 144], ["asc", "Асцендент в знаке", 12],
 ];
-const txPtName = k => k === "asc" ? "Асцендент" : k === "mc" ? "MC" : (BODIES.find(b => b[0] === k) || [k, k])[1];
+const txPtName = k => k === "asc" ? "Асцендент" : k === "mc" ? "MC" : k === "snode" ? "Южный узел" : (BODIES.find(b => b[0] === k) || [k, k])[1];
 function txValidKey(k) {
   const s = String(k).split(".");
   const sign = x => /^\d+$/.test(x) && +x < 12, house = x => /^\d+$/.test(x) && +x >= 1 && +x <= 12;
   if (s[0] === "pl" || s[0] === "pm") return s.length === 2 && TX_POINTS.includes(s[1]);
   if (s[0] === "pc") return s.length === 4 && TX_PERSONAL.includes(s[1]) && SIGN_EN.includes(s[2]) && house(s[3]);
-  if (s[0] === "ps") return s.length === 3 && TX_POINTS.includes(s[1]) && sign(s[2]);
-  if (s[0] === "ph") return s.length === 3 && TX_POINTS.includes(s[1]) && house(s[2]);
+  if (s[0] === "ps") return s.length === 3 && TX_PSH.includes(s[1]) && sign(s[2]);
+  if (s[0] === "ph") return s.length === 3 && TX_PSH.includes(s[1]) && house(s[2]);
   if (s[0] === "rh") return s.length === 3 && house(s[1]) && house(s[2]);
   if (s[0] === "asc") return s.length === 2 && sign(s[1]);
   if (s[0] === "hs") return s.length === 2 && house(s[1]);
@@ -2282,7 +2283,7 @@ const TX_SEED = {};   // ключевые слова планет: ждём от
 const TX_SEED_SG = {"sg.0": "Огонь, кардинальный крест. Управитель — Марс.\n\nПрямолинейный, инициативный, поспешный, решительный, резкий, импульсивный, искренний, конкурентный, смелый, нетерпеливый. Овен действует быстро, напрямую и с напором: вспышкой, рывком, первым шагом. Сила велика, но коротка: быстро загорается и быстро гаснет.", "sg.1": "Земля, фиксированный крест. Управитель — Венера.\n\nУстойчивый, стабильный, упёртый, спокойный, материальный, практичный, выносливый, терпеливый, неторопливый, чувственный. Телец действует медленно, надёжно и надолго: накапливает, удерживает и сопротивляется переменам и давлению.", "sg.2": "Воздух, мутабельный крест. Управитель — Меркурий.\n\nКонтактный, подвижный, сообразительный, лёгкий, любопытный, общительный, разносторонний, переменчивый, поверхностный. Близнецы действуют легко, быстро и параллельно, через связи, обмен и информацию: ничего не удерживают надолго и постоянно переключаются.", "sg.3": "Вода, кардинальный крест. Управитель — Луна.\n\nЧувствительный, переменчивый, ранимый, заботливый, домашний, семейный, мягкий, мнительный, защищающий, привязчивый. Рак действует через эмоции, волнами и порывами, непрямо и с оглядкой на безопасность: бережёт, опекает и прячется, когда чувствует угрозу.", "sg.4": "Огонь, фиксированный крест. Управитель — Солнце.\n\nЯркий, демонстративный, творческий, эгоцентричный, индивидуалистичный, открытый, щедрый, гордый, властный, величественный. Лев проявляется заметно, ровно и долго, как постоянный свет: стремится быть в центре, вызывать восхищение и сохранять своё достоинство.", "sg.5": "Земля, мутабельный крест. Управитель — Меркурий.\n\nТщательный, детализированный, мелочный, рассудочный, въедливый, скептичный, рациональный, сухой, земной, полезный. Дева действует аккуратно, по шагам и с вниманием к мелочам: сортирует, проверяет, исправляет и приспосабливается к обстоятельствам.", "sg.6": "Воздух, кардинальный крест. Управитель — Венера.\n\nУравновешенный, нерешительный, объективный, отстранённый, взвешенный, эстетичный, светский, дипломатичный, вежливый. Весы действуют через сравнение, баланс и отношения с другими: ищут гармонию и справедливость, колеблются между крайностями и избегают резкости.", "sg.7": "Вода, фиксированный крест. Управитель — Плутон.\n\nИнтенсивный, драматичный, настойчивый, мстительный, глубокий, властный, стрессовый, требовательный, ревнивый, недоверчивый, скрытный. Скорпион действует глубоко, напряжённо и долго, через кризисы и контроль: копит силу скрыто и идёт всерьёз, до конца.", "sg.8": "Огонь, мутабельный крест. Управитель — Юпитер.\n\nУстремлённый, идеалистичный, оптимистичный, энергичный, вдохновлённый, заряженный, амбициозный, увлекающийся, свободолюбивый, широкий. Стрелец действует с размахом и энтузиазмом, расширяется и тянется вдаль: переходит от цели к цели и ищет высший смысл.", "sg.9": "Земля, кардинальный крест. Управитель — Сатурн.\n\nЦелеустремлённый, последовательный, упорный, властный, жёсткий, выносливый, реалистичный, прагматичный, сдержанный, ответственный. Козерог действует через усилие, дисциплину и движение к результату: строит структуру, ставит границы и поднимается медленно, по ступеням.", "sg.10": "Воздух, фиксированный крест. Управитель — Уран.\n\nСвободный, независимый, нестандартный, аномальный, гуманистичный, неформальный, коллективный, любознательный, отстранённый, бунтарский. Водолей действует необычно и неожиданно, вне правил и шаблонов: держится за свободу и идеи и объединяет людей по интересам.", "sg.11": "Вода, мутабельный крест. Управитель — Нептун.\n\nИррациональный, интуитивный, глубокий, скрытный, зависимый, альтруистичный, жертвенный, мистичный, фантастический, текучий. Рыбы действуют размыто, мягко и интуитивно: растворяют границы, обходят препятствия и принимают форму обстоятельств."};   // описания знаков (texts/natal/znaki.json, сборка: gen_sg.py)
 Object.assign(SEED, TX_SEED, TX_SEED_SG);
 // Готовые сочетания личных планет (Т-26) грузятся отдельными файлами, когда они есть
-const TX_COMBO_FILES = ["sun", "moon", "mercury", "venus", "mars"];   // какие файлы сочетаний уже есть
+const TX_COMBO_FILES = ["sun", "moon", "mercury", "venus", "mars", "chiron", "node", "snode"];   // какие файлы сочетаний уже есть
 async function txLoadCombos() {
   const got = await Promise.all(TX_COMBO_FILES.map(p => fetch(`texts-combo-${p}.json`).then(r => r.ok ? r.json() : null).catch(() => null)));
   let n = 0;
@@ -2292,6 +2293,9 @@ async function txLoadCombos() {
       const [sg, h] = sh.split("-"), k = `pc.${d.planet}.${sg}.${h}`;
       if (typeof t === "string" && txValidKey(k)) { SEED[k] = t; n++; }
     }
+    // Хирон и узлы: в том же файле тексты «в знаке» и «в доме»
+    for (const [sg, t] of Object.entries(d.signs || {})) { const k = txKey.ps(d.planet, SIGN_EN.indexOf(sg)); if (typeof t === "string" && txValidKey(k)) { SEED[k] = t; n++; } }
+    for (const [h, t] of Object.entries(d.houses || {})) { const k = txKey.ph(d.planet, h); if (typeof t === "string" && txValidKey(k)) { SEED[k] = t; n++; } }
     // Kate: без фразы «Дом покажет…» во вступлениях
     SEED_INTRO[d.planet] = Object.fromEntries(Object.entries(d.intros || {}).map(([sg, t]) => [sg, String(t).replace(/\s*Дом показ[а-яё]*[^.!?]*[.!?]/gi, "").trim()]));
   }
@@ -2449,9 +2453,9 @@ function txSection() {
     const P = { p: p.key, si: signIdx(p.lon), h: H ? p.house : 0 };
     const pcK = P.h && TX_PERSONAL.includes(P.p) ? txKey.pc(P.p, P.si, P.h) : null, pc = pcK && txGet(pcK);
     const kw = txGet(txKey.pl(P.p)), intro = pc && pc === SEED[pcK] && SEED_INTRO[P.p] && SEED_INTRO[P.p][SIGN_EN[P.si]];
-    const body = pc ? (intro ? para(intro) : "") + para(pc)
+    const body = (pc ? (intro ? para(intro) : "") + para(pc)
       : `<p class="itp-formula">${esc(txFormula(P))}</p>` + [txGet(txKey.ps(P.p, P.si)), P.h ? txGet(txKey.ph(P.p, P.h)) : ""].filter(Boolean).map(para).join("")
-        + (!txGet(txKey.ps(P.p, P.si)) && txGet(txKey.sg(P.si)) ? `<b class="tx-sub">${esc(txLabel(txKey.sg(P.si)))}</b>` + para(txGet(txKey.sg(P.si))) : "");
+        + (!txGet(txKey.ps(P.p, P.si)) && txGet(txKey.sg(P.si)) ? `<b class="tx-sub">${esc(txLabel(txKey.sg(P.si)))}</b>` + para(txGet(txKey.sg(P.si))) : "")) + txSouthNode(P);
     const title = `${txFullName(p.key)}${P.h ? ` ${inHouse(P.h)}` : ""} ${inSign(P.si)}`;
     return `<details class="tx-item"${txOpenAttr("p:" + P.p)}><summary><h3><span class="g">${glyphHtml(p)}</span> ${esc(title)}</h3></summary><div class="tx-body">${kw ? `<p class="tx-kw">${esc(kw)}</p>` : ""}${txGet(txKey.pm(P.p)) ? para(txGet(txKey.pm(P.p))) : ""}${body}
       ${edit(`data-txopen="pl" data-txpl="${P.p}.${P.si}.${P.h}" data-txt="${esc(`${p.glyph} ${p.name}`)}"`)}</div></details>`;
@@ -2518,6 +2522,14 @@ function itpOpen(keys, title, from, planet = null) {
   const f = $("itpBody").querySelector("button, textarea"); if (f) f.focus();
 }
 // Окно планеты: «☉ Солнце в V доме в Близнецах», ключевые слова, затем одно «Описание»
+// Южный узел стоит напротив Северного: знак +6, дом +6. Возвращает блок с его текстом (или пустую строку)
+function txSouthNode(P) {
+  if (P.p !== "node") return "";
+  const si = (P.si + 6) % 12, h = P.h ? (P.h + 5) % 12 + 1 : 0;
+  const pc = h ? txGet(txKey.pc("snode", si, h)) : "", parts = pc ? [pc] : [txGet(txKey.ps("snode", si)), h ? txGet(txKey.ph("snode", h)) : ""].filter(Boolean);
+  if (!parts.length) return "";
+  return `<b class="tx-sub">Южный узел${h ? ` ${inHouse(h)}` : ""} ${inSign(si)}</b>` + parts.map(t => `<div class="itp-text">${esc(t)}</div>`).join("");
+}
 function txPlanetOpen(p, si, h, title, from) {
   const t = `${title}${h ? ` ${inHouse(h)}` : ""} ${inSign(si)}`;
   itpOpen([txKey.pl(p), txKey.pm(p)], t, from, { p, si, h });
@@ -2543,12 +2555,12 @@ function itpDesc(P) {
   if (ITP.edit && [psK, phK, pcK, sgK].includes(ITP.edit)) return `<div class="itp-item itp-desc" data-key="${ITP.edit}">${itpEditor(ITP.edit, ITP.edit === pcK ? "Описание: " + txLabel(pcK) : txLabel(ITP.edit))}</div>`;
   const pc = pcK && txGet(pcK);
   const intro = pc && pc === SEED[pcK] && SEED_INTRO[P.p] && SEED_INTRO[P.p][SIGN_EN[P.si]];
-  if (pc) return `<div class="itp-item itp-desc" data-key="${pcK}"><h3>Описание</h3>${intro ? `<div class="itp-text itp-intro">${esc(intro)}</div>` : ""}<div class="itp-text">${esc(pc)}</div>
+  if (pc) return `<div class="itp-item itp-desc" data-key="${pcK}"><h3>Описание</h3>${intro ? `<div class="itp-text itp-intro">${esc(intro)}</div>` : ""}<div class="itp-text">${esc(pc)}</div>${txSouthNode(P)}
     <div class="itp-btns"><button type="button" class="btn" data-tx="edit" data-k="${pcK}">Изменить описание</button></div>
     <details class="itp-more"${ITP.more ? " open" : ""}><summary>Отдельные тексты «в знаке» и «в доме»</summary>${parts()}</details></div>`;
   const ps = txGet(psK), ph = phK ? txGet(phK) : "";
   return `<div class="itp-item itp-desc" data-key="desc"><h3>Описание</h3><p class="itp-formula">${esc(txFormula(P))}</p>
-    ${ps ? `<div class="itp-text">${esc(ps)}</div>` : ""}${ph ? `<div class="itp-text">${esc(ph)}</div>` : ""}
+    ${ps ? `<div class="itp-text">${esc(ps)}</div>` : ""}${ph ? `<div class="itp-text">${esc(ph)}</div>` : ""}${txSouthNode(P)}
     ${!ps && txGet(sgK) ? `<b class="tx-sub">${esc(txLabel(sgK))}</b><div class="itp-text">${esc(txGet(sgK))}</div>` : ""}
     ${pcK ? `<div class="itp-btns"><button type="button" class="btn" data-tx="edit" data-k="${pcK}" data-prefill="1">Написать своё описание</button></div><p class="hint">Описание сохранится отдельным текстом: дальнейшие правки «в знаке» и «в доме» в него не попадут.</p>` : ""}
     <details class="itp-more"${ITP.more || !(ps || ph) ? " open" : ""}><summary>Тексты «в знаке» и «в доме»</summary>${parts()}</details></div>`;
