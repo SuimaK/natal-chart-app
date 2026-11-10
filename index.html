@@ -66,6 +66,8 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+/* страницу нельзя увеличить двумя пальцами или двойным нажатием: иначе экран «уезжает» вбок и не возвращается; круг увеличивается в своём окне */
+html { touch-action: pan-x pan-y; }
 body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
 .wrap { max-width: 1120px; margin: 0 auto; padding-block: 16px calc(110px + env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -691,7 +693,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "57";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "60";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -2469,20 +2471,12 @@ function txSection() {
         ${edit(`data-txopen="keys" data-keys="${keys.join(" ")}" data-txt="${ROMAN[i]} дом"`)}</div></details>`);
     });
   }
-  // Знаки, где стоят планеты (и асцендент): описание знака
-  const occ = new Map();
-  for (const p of ch.planets) { const i = signIdx(p.lon); if (!occ.has(i)) occ.set(i, []); occ.get(i).push(glyphHtml(p)); }
-  if (H) { const i = signIdx(ch.houses.cusps[0]); if (!occ.has(i)) occ.set(i, []); occ.get(i).push("ASC"); }
-  const signs = [...occ.keys()].sort((a, b) => a - b).filter(i => txGet(txKey.sg(i))).map(i =>
-    `<details class="tx-item"${txOpenAttr("s:" + i)}><summary><h3><span class="g">${SIGN_GLYPHS[i]}${VS15}</span> ${SIGNS[i]} <small class="tx-who">${occ.get(i).join(" ")}</small></h3></summary><div class="tx-body">${para(txGet(txKey.sg(i)))}
-      ${edit(`data-txopen="keys" data-keys="${txKey.sg(i)}" data-txt="${esc(SIGNS[i])}"`)}</div></details>`).join("");
   const asp = ch.aspects.map(a => [a, txKey.as(a.a.key, a.b.key, a.key)]).filter(([, k]) => txGet(k)).map(([a, k]) =>
     `<details class="tx-item"${txOpenAttr("a:" + k)}><summary><h3><span class="g">${pointGlyph(a.a)}</span> <b class="${a.kind || ""}">${a.glyph}</b> <span class="g">${pointGlyph(a.b)}</span> ${esc(`${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`)}</h3></summary><div class="tx-body">${para(txGet(k))}
       ${edit(`data-txopen="keys" data-keys="${k}" data-txt="${esc(`${a.a.name} — ${a.name.toLowerCase()} — ${a.b.name}`)}"`)}</div></details>`).join("");
   el.innerHTML = `<div class="tx-head"><button type="button" class="pill" id="txFold" aria-pressed="${TX_FOLD}">${TX_FOLD ? "▸ Развернуть всё" : "▾ Свернуть всё"}</button></div><h2>Толкование</h2>
     <h3 class="tx-grp">Планеты</h3>${planets}
     ${H ? `<h3 class="tx-grp">Дома</h3>${other.length ? other.join("") : '<p class="hint">Текстов о домах этой карты пока нет. Нажмите на строку в таблице «Дома», чтобы написать.</p>'}` : ""}
-    ${signs ? `<h3 class="tx-grp">Знаки</h3>${signs}` : ""}
     <h3 class="tx-grp">Аспекты</h3>${asp || '<p class="hint">Текстов об аспектах этой карты пока нет. Нажмите на аспект в списке, чтобы написать.</p>'}`;
 }
 function txRefresh() {
@@ -3582,6 +3576,8 @@ function zoomClamp() {
   ZM.x = Math.min(mx, Math.max(-mx, ZM.x)); ZM.y = Math.min(my, Math.max(-my, ZM.y));
 }
 function zoomCommit() { if (ZM.k !== ZM.s) { ZM.k = ZM.s; zoomApply(); } }
+// Safari: жест увеличения страницы отменяем и здесь (старые версии не слушают touch-action)
+for (const t of ["gesturestart", "gesturechange"]) document.addEventListener(t, e => e.preventDefault(), { passive: false });
 function zoomOpen(svgEl) {
   $("zoomInner").innerHTML = svgEl.outerHTML;
   ZM.s = 1; ZM.k = 1; ZM.x = 0; ZM.y = 0; zoomApply(); zoomFocus(null);
