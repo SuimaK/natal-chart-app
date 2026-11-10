@@ -344,9 +344,9 @@ button.go:disabled { opacity: .5; cursor: progress; }
   .wheel { margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); border-radius: 0; border-left: 0; border-right: 0; padding: 6px 2px; }
 }
 .zoom { position: fixed; inset: 0; z-index: 50; background: #0e0e18; display: grid; }
-.zoom-stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; display: grid; place-items: center; }
+.zoom-stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
 /* Размер круга задаёт --k (зафиксированный масштаб): после жеста круг перерисовывается в настоящем размере и остаётся чётким на iPhone */
-.zoom-inner { position: absolute; left: 50%; top: 50%; width: calc(min(100vw, 100vh) * var(--k, 1)); transform-origin: center center; background: var(--surface); border-radius: 8px; }
+.zoom-inner { position: absolute; left: 50%; top: 50%; justify-self: start; align-self: start; margin: 0; width: calc(min(100vw, 100vh) * var(--k, 1)); transform-origin: center center; background: var(--surface); border-radius: 8px; }
 .zoom-inner svg { display: block; width: 100%; height: auto; }
 .zoom-x { position: absolute; top: max(12px, env(safe-area-inset-top, 0px)); right: 12px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgb(14 14 24 / .6); color: #fff; font-size: 1.2rem; cursor: pointer; z-index: 2; }
 .zoom-info { position: absolute; left: 12px; right: 12px; bottom: max(24px, env(safe-area-inset-bottom, 0px)); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 12px 14px; font-size: .95rem; box-shadow: 0 4px 16px rgb(0 0 0 / .35); z-index: 2; }
@@ -691,7 +691,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "55";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "56";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -3563,6 +3563,12 @@ function zoomApply() {
   el.style.setProperty("--k", ZM.k);
   el.style.transform = `translate(calc(-50% + ${ZM.x}px), calc(-50% + ${ZM.y}px)) scale(${ZM.s / ZM.k})`;
 }
+// круг нельзя увести за край: смещение не больше выступающей за экран части (при масштабе 1 он всегда по центру)
+function zoomClamp() {
+  const el = $("zoomInner"), r = $("zoomStage").getBoundingClientRect(), f = ZM.s / ZM.k;
+  const mx = Math.max(0, (el.offsetWidth * f - r.width) / 2), my = Math.max(0, (el.offsetHeight * f - r.height) / 2);
+  ZM.x = Math.min(mx, Math.max(-mx, ZM.x)); ZM.y = Math.min(my, Math.max(-my, ZM.y));
+}
 function zoomCommit() { if (ZM.k !== ZM.s) { ZM.k = ZM.s; zoomApply(); } }
 function zoomOpen(svgEl) {
   $("zoomInner").innerHTML = svgEl.outerHTML;
@@ -3606,7 +3612,7 @@ function initZoom() {
     const r = st.getBoundingClientRect(), ox = cx - r.left - r.width / 2, oy = cy - r.top - r.height / 2;
     ZM.x = ox - (ox - ZM.x) * ns / ZM.s; ZM.y = oy - (oy - ZM.y) * ns / ZM.s; ZM.s = ns;
     if (ZM.s === 1) { ZM.x = 0; ZM.y = 0; }
-    ZM.k = ZM.s; zoomApply();
+    ZM.k = ZM.s; zoomApply(); zoomClamp(); zoomApply();
   };
   st.addEventListener("pointerdown", e => {
     st.setPointerCapture(e.pointerId);
@@ -3622,9 +3628,9 @@ function initZoom() {
       const m = mid(), ns = Math.min(6, Math.max(1, ZM.start.s * dist() / ZM.start.d));
       const r = st.getBoundingClientRect(), ox = ZM.start.m.x - r.left - r.width / 2, oy = ZM.start.m.y - r.top - r.height / 2;
       ZM.x = ox - (ox - ZM.start.x) * ns / ZM.start.s + (m.x - ZM.start.m.x); ZM.y = oy - (oy - ZM.start.y) * ns / ZM.start.s + (m.y - ZM.start.m.y); ZM.s = ns;
-      zoomApply();
+      zoomClamp(); zoomApply();
     } else if (ZM.ptrs.size === 1 && ZM.s > 1) {
-      ZM.x = ZM.start.x + e.clientX - ZM.start.m.x; ZM.y = ZM.start.y + e.clientY - ZM.start.m.y; zoomApply();
+      ZM.x = ZM.start.x + e.clientX - ZM.start.m.x; ZM.y = ZM.start.y + e.clientY - ZM.start.m.y; zoomClamp(); zoomApply();
     }
   });
   const up = e => {
@@ -3636,7 +3642,7 @@ function initZoom() {
       zoomFocus(el && el.closest ? el.closest("[data-pt]") : null);
     }
     if (ZM.ptrs.size === 1) { const [v] = [...ZM.ptrs.values()]; ZM.start = { s: ZM.s, x: ZM.x, y: ZM.y, d: 0, m: v }; }
-    if (!ZM.ptrs.size) zoomCommit();
+    if (!ZM.ptrs.size) { zoomClamp(); zoomApply(); zoomCommit(); }
   };
   st.addEventListener("pointerup", up); st.addEventListener("pointercancel", up);
   st.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, ZM.s * (e.deltaY < 0 ? 1.15 : 1 / 1.15)); }, { passive: false });
