@@ -293,6 +293,9 @@ tr.has-tx .txd { display: inline-block; }
 .saved .del:hover, .saved .open:focus-visible, .saved .del:focus-visible { background: var(--wheel-band); }
 .actions { display: flex; flex-wrap: nowrap; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .actions::-webkit-scrollbar { display: none; }
+.dirhset { display: grid; gap: 6px; }
+.dirhset .seg.seg-full { display: grid; }
+.dirhset > span { font-size: 13px; color: var(--muted, inherit); }
 .pill { font: 500 13px/1 var(--f-body); padding: 8px 12px; min-height: 34px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; white-space: nowrap; flex: none; }
 .pill.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .pill.save { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
@@ -693,7 +696,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "64";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "65";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -702,7 +705,7 @@ const MEM = {};
 function lsGet(k) { if (k in MEM) return MEM[k]; try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { MEM[k] = String(v); CLOUD.dirty.add(k); cloudSchedule(); localStorage.setItem(k, v); }
 const CLOUD = { db: null, uid: null, ready: false, dirty: new Set(), deleted: [], timer: null, busy: false, state: "connecting" };
-const SYNC_KEYS = ["natal-charts-v1", "natal-orbs-v1", "natal-theme", "natal-show-minor", "natal-show-ang", "natal-tr-slow", "natal-syn-sept", "natal-ret-place", "natal-ret-dbl", "natal-last-fc", "natal-wheel", "natal-asp-view", "natal-dir-houses", "natal-tx-fold", "natal-sec-open", "natal-last-chart"];
+const SYNC_KEYS = ["natal-charts-v1", "natal-orbs-v1", "natal-theme", "natal-show-minor", "natal-show-ang", "natal-tr-slow", "natal-syn-sept", "natal-ret-place", "natal-ret-dbl", "natal-last-fc", "natal-wheel", "natal-asp-view", "natal-dir-houses", "natal-dir-hset", "natal-tx-fold", "natal-sec-open", "natal-last-chart"];
 function cloudSchedule() { if (!CLOUD.ready) return; clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudFlush, 400); }
 async function cloudFlush() {
   if (!CLOUD.ready || CLOUD.busy || !CLOUD.dirty.size) return;
@@ -2957,7 +2960,7 @@ function figFocus(btn) {
   wheel.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 let SHARE_CH = null;   // чья карта на экране: имя и дата для картинки
-function renderPair({ head, inner, outerPlanets, outerPts, innerPts, aspects, outerLabel, innerLabel, tables, rerender, extra = "", bindExtra = () => {}, keep = () => true }) {
+function renderPair({ head, inner, outerPlanets, outerPts, innerPts, aspects, outerLabel, innerLabel, tables, rerender, extra = "", below = "", bindExtra = () => {}, keep = () => true }) {
   // keep — фильтр точек (только медленные транзиты, только септенер)
   SHARE_CH = inner;
   if (!SHOW_ANG) { innerPts = innerPts.filter(p => !isAng(p)); outerPts = outerPts.filter(p => !isAng(p)); }
@@ -2967,7 +2970,7 @@ function renderPair({ head, inner, outerPlanets, outerPts, innerPts, aspects, ou
     <div class="result">
       <div style="display:grid;gap:12px;min-width:0">
         <div class="summary">${head}</div>
-        <div class="actions">${toggleBtn("minorBtn", SHOW_MINOR, "Минорные")}${inner.houses ? toggleBtn("angBtn", SHOW_ANG, "ASC/MC") : ""}${extra}</div>
+        <div class="actions">${toggleBtn("minorBtn", SHOW_MINOR, "Минорные")}${inner.houses ? toggleBtn("angBtn", SHOW_ANG, "ASC/MC") : ""}${extra}</div>${below}
         ${wheelBox(renderSvg(inner, 600, { outer: outerPlanets, aspects: shown, outerLabel }))}
         <div class="legend"><span><span class="sd sd0"></span>Огонь</span><span><span class="sd sd1"></span>Земля</span><span><span class="sd sd2"></span>Воздух</span><span><span class="sd sd3"></span>Вода</span>
           <span class="tag-out">внешний круг: ${esc(outerLabel)}</span><span><span class="ln a-conj-bg"></span>соединения</span><span><span class="ln a-hard-bg"></span>напряжённые</span><span><span class="ln a-soft-bg"></span>гармоничные</span>${SHOW_MINOR ? '<span><span class="ln a-minor-bg"></span>минорные (пунктир)</span>' : ""}</div>
@@ -3425,6 +3428,10 @@ function initSky() {
 const TROPICAL_YEAR = 365.2422;
 const DIR = { baseId: null, date: null };
 let DIR_HOUSES = lsGet("natal-dir-houses") === "1";   // аспекты от и к куспидам домов (Т-24), по умолчанию выключено
+// какие куспиды участвуют в аспектах при включённых «Домах»: nat — натальные, dir — дирекционные (сдвинутые дугой), all — те и другие
+const DIR_HSETS = [["nat", "натальные"], ["dir", "дирекционные"], ["all", "все"]];
+const dirHSet = v => DIR_HSETS.some(x => x[0] === v) ? v : "all";
+let DIR_HSET = dirHSet(lsGet("natal-dir-hset"));
 function todayStr() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 async function solarArc(natalJd, natalSun, targetJd) {
   const pj = natalJd + (targetJd - natalJd) / TROPICAL_YEAR;
@@ -3452,15 +3459,22 @@ async function runDirection() {
     const H = !!natal.houses, withH = H && DIR_HOUSES;
     // «Дома»: куспиды I–XII вместо ASC/MC с обеих сторон; куспид к куспиду не считается
     const cusps = (sh, sp) => natal.houses.cusps.map((c, i) => ({ key: `c${i + 1}`, name: `${ROMAN[i]} дом`, glyph: ROMAN[i], lon: norm(c + sh), speed: sp }));
-    const dirPts = [...dirPl, ...(withH ? cusps(arc, 1) : angPts(natal).map(p => ({ ...p, lon: norm(p.lon + arc), speed: 1 })))];
-    const innerPts = [...natal.planets.map(p => ({ ...p, speed: 0 })), ...(withH ? cusps(0, 0) : angPts(natal))];
+    // натальные дома: дирекционные планеты к натальным куспидам; дирекционные: натальные планеты к куспидам, сдвинутым дугой
+    const useNat = withH && DIR_HSET !== "dir", useDir = withH && DIR_HSET !== "nat";
+    const dirPts = [...dirPl, ...(withH ? (useDir ? cusps(arc, 1) : []) : angPts(natal).map(p => ({ ...p, lon: norm(p.lon + arc), speed: 1 })))];
+    const innerPts = [...natal.planets.map(p => ({ ...p, speed: 0 })), ...(withH ? (useNat ? cusps(0, 0) : []) : angPts(natal))];
     const dirAsp = findCrossAspects(innerPts, dirPts, "direction", true).filter(a => !(isCusp(a.a) && isCusp(a.b)));
     const head = `<span><b>Дирекции солнечной дуги</b> на ${pad(d)}.${pad(mo)}.${y} · дуга <span class="tag">${fmtArc(arc)}</span></span><span>к карте ${chartLine(natal)}</span>`;
     const tables = `<div><h2>Дирекционные точки</h2><div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th>${H ? "<th>Дом натала</th>" : ""}</tr></thead><tbody>${posRows(dirPts, p => H ? houseOf(natal.houses.cusps, p.lon) : undefined)}</tbody></table></div></div>`;
     const draw = () => renderPair({ head, inner: natal, outerPlanets: SHOW_ANG ? dirPts : dirPl, outerPts: dirPts, innerPts,
       aspects: dirAsp, outerLabel: "Дир.", innerLabel: "Нат.", tables, rerender: draw,
       extra: H ? toggleBtn("dirHBtn", DIR_HOUSES, "Дома") : "",
-      bindExtra: () => bindToggle("dirHBtn", () => DIR_HOUSES, v => DIR_HOUSES = v, "natal-dir-houses", runDirection) });
+      below: withH ? `<div class="dirhset"><span>Дома для аспектов</span><div class="seg seg-full" id="dirHSet">${DIR_HSETS.map(([k, t]) => `<button type="button" data-hset="${k}" aria-selected="${k === DIR_HSET}">${t}</button>`).join("")}</div></div>` : "",
+      bindExtra: () => {
+        bindToggle("dirHBtn", () => DIR_HOUSES, v => DIR_HOUSES = v, "natal-dir-houses", runDirection);
+        const sg = $("dirHSet");
+        if (sg) sg.addEventListener("click", e => { const b = e.target.closest("[data-hset]"); if (!b || b.dataset.hset === DIR_HSET) return; DIR_HSET = b.dataset.hset; try { lsSet("natal-dir-hset", DIR_HSET); } catch (er) {} runDirection(); });
+      } });
     draw();
     $("notes").innerHTML = natal.unknown ? '<div class="note">У натальной карты неизвестно время рождения: дирекции ASC и MC не строятся.</div>' : "";
   } catch (err) { if (run === DIR_RUN) { $("out").innerHTML = ""; showError(err.message); } }
@@ -3785,7 +3799,7 @@ function applyPrefs() {
   // из облака пришли карты и настройки — применяем их
   ORBSET = loadOrbSet();
   SHOW_MINOR = lsGet("natal-show-minor") === "1"; SHOW_ANG = lsGet("natal-show-ang") === "1";
-  TR_SLOW = lsGet("natal-tr-slow") === "1"; SYN_SEPT = lsGet("natal-syn-sept") === "1"; DIR_HOUSES = lsGet("natal-dir-houses") === "1";
+  TR_SLOW = lsGet("natal-tr-slow") === "1"; SYN_SEPT = lsGet("natal-syn-sept") === "1"; DIR_HOUSES = lsGet("natal-dir-houses") === "1"; DIR_HSET = dirHSet(lsGet("natal-dir-hset"));
   try { SEC_OPEN = new Set(JSON.parse(lsGet("natal-sec-open") || "[]")); } catch (e) {}
   for (const h of $("out").querySelectorAll("h2.sec-h")) secApply(h);
   if (["transit", "solar", "lunar", "direction", "sky"].includes(lsGet("natal-last-fc"))) LAST_FC = lsGet("natal-last-fc");
