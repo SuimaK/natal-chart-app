@@ -155,6 +155,9 @@ header h1 { font: 600 2.1rem/1.1 var(--f-display); margin: 0; text-wrap: balance
 .file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
 .orb-msg { font-size: .85rem; color: var(--muted); min-height: 1.2em; }
 .orb-msg.err { color: var(--hard); }
+.store-fail { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  padding: 10px 12px; border-radius: 10px; background: var(--err-bg); border: 1px solid var(--err-line); color: var(--hard); font-size: 14px; }
+.store-fail[hidden] { display: none; }
 .theme-btn { font: 500 .85rem var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
   border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap; flex: none; }
 header p { margin: 4px 0 0; color: var(--muted); font-size: .9rem; max-width: 62ch; }
@@ -577,6 +580,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
     <p class="zoom-tip">Два пальца — масштаб, нажатие на планету — её аспекты</p>
   </div>
 
+  <div class="store-fail" id="storeFail" role="alert" hidden></div>
   <nav class="modes" role="tablist" aria-label="Разделы" id="modes">
     <button type="button" role="tab" data-mode="natal" aria-selected="true"><span class="ic">☉</span>Карта</button>
     <button type="button" role="tab" data-mode="transit" aria-selected="false"><span class="ic">♃</span>Прогноз</button>
@@ -700,14 +704,33 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "66";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "67";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
    data/users/<id>/charts и data/users/<id>/prefs. localStorage — быстрый кэш. */
 const MEM = {};
 function lsGet(k) { if (k in MEM) return MEM[k]; try { return localStorage.getItem(k); } catch (e) { return null; } }
-function lsSet(k, v) { MEM[k] = String(v); CLOUD.dirty.add(k); cloudSchedule(); localStorage.setItem(k, v); }
+// Запись (P2.1): сначала в браузер; если он отказал (нет места, запрещено) и облака нет — значение в памяти не меняется,
+// вызов бросает ошибку, а пользователь видит «Не сохранено». С облаком значение сохраняется там, браузер — только кэш.
+function lsSet(k, v) {
+  v = String(v);
+  let err = null;
+  try { localStorage.setItem(k, v); } catch (e) { err = e; }
+  if (err && !CLOUD.ready) { const msg = storeFailText(err); storeFail(msg); throw new Error(msg); }
+  MEM[k] = v; CLOUD.dirty.add(k); cloudSchedule();
+  if (!err && STORE_FAIL) storeFail("");
+}
+const isQuota = e => !!e && (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED" || e.code === 22 || e.code === 1014);
+const storeFailText = e => isQuota(e) ? "в памяти браузера закончилось место" : "этот браузер не даёт хранить данные";
+let STORE_FAIL = "";   // текст последней неудачной записи; пусто — всё сохранено
+function storeFail(msg) {
+  STORE_FAIL = msg;
+  const el = document.getElementById("storeFail");
+  if (!el) return;
+  el.textContent = msg ? `Не сохранено: ${msg}. Нажмите, чтобы скрыть.` : ""; el.hidden = !msg;
+  el.onclick = () => { el.hidden = true; };
+}
 const CLOUD = { db: null, uid: null, ready: false, dirty: new Set(), deleted: [], timer: null, busy: false, state: "connecting" };
 const SYNC_KEYS = ["natal-charts-v1", "natal-orbs-v1", "natal-theme", "natal-show-minor", "natal-show-ang", "natal-tr-slow", "natal-syn-sept", "natal-ret-place", "natal-ret-dbl", "natal-last-fc", "natal-wheel", "natal-asp-view", "natal-dir-houses", "natal-dir-hnat", "natal-dir-hdir", "natal-tx-fold", "natal-sec-open", "natal-last-chart"];
 function cloudSchedule() { if (!CLOUD.ready) return; clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudFlush, 400); }
@@ -1885,18 +1908,27 @@ function initForm() {
 /* ---------- Построение ---------- */
 let CUR_INPUT = null, CUR_STATE = null;
 function approxJd(w) { return Date.UTC(w.y, w.mo - 1, w.d, w.h, w.mi) / 864e5 + 2440587.5; }
+let NAT_RUN = 0;
 async function run(scroll) {
   const input = CUR_INPUT;
   const jd = approxJd(input.w);
+  const runId = ++NAT_RUN, live = viewTicket("natal"), cur = () => runId === NAT_RUN && live();
   $("go").disabled = true;
   try {
     if (!EPH.meta || [jd - 1.5, jd + 1.5].some(j => !EPH.data.has(chunkIndexFor(j)))) $("notes").innerHTML = '<div class="note">Загружаю таблицы эфемерид для этого века…</div>';
     await ensureEph([jd - 1.5, jd + 1.5]);
+    if (runId !== NAT_RUN) return;   // уже строится другая карта
     const built = buildChart(input);
+    if (!live()) {   // пока грузились таблицы, открыли другой раздел: карту запоминаем, экран не трогаем
+      LAST_CHART = { ch: built, example: false };
+      if (EDIT_ID) applyEdit(built, true);
+      return;
+    }
     renderChart(built, false);
     if (EDIT_ID) applyEdit(built);
     if (scroll) $("out").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   } catch (err) {
+    if (!cur()) return;
     $("out").innerHTML = "";   // прежняя карта к новым данным не относится
     if (err.ask) { $("notes").innerHTML = askHtml(err.ask); $("notes").scrollIntoView({ block: "center" }); }
     else showError(err.message);
@@ -2010,7 +2042,8 @@ const LAST_KEY = "natal-last-chart";
 function rememberLast(id) { try { if (lsGet(LAST_KEY) !== id) lsSet(LAST_KEY, id); } catch (e) {} }
 async function openSaved(item, edit, scroll = true) {
   setMode("natal");
-  if (!edit && stateNeedsCities(item.state)) { try { await ensureCities(); } catch (err) { showError(err.message); return; } }
+  const live = viewTicket();
+  if (!edit && stateNeedsCities(item.state)) { try { await ensureCities(); } catch (err) { if (live()) showError(err.message); return; } if (!live()) return; }
   applyFormState(item.state);
   CUR_STATE = item.state; EDIT_ID = edit ? item.id : null;
   if (edit) { FORM_OPEN = true; syncFormVis(); $("out").innerHTML = ""; $("formCard").innerHTML = ""; RERENDER = null;
@@ -2022,12 +2055,12 @@ async function openSaved(item, edit, scroll = true) {
 }
 // После «Изменить данные» построенная карта заменяет прежнюю запись
 let EDIT_ID = null;
-function applyEdit(ch) {
+function applyEdit(ch, quiet = false) {
   const id = EDIT_ID; EDIT_ID = null;
   const list = loadSaved(), i = list.findIndex(x => x.id === id);
   if (i < 0 || !CUR_STATE) return;
   list[i] = { ...list[i], title: ch.name || `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y}`, sub: chartSub(ch), state: CUR_STATE, upd: Date.now() };
-  if (storeSaved(list)) { renderSaved(); const sb = $("saveBtn"); if (sb) { sb.textContent = "✓ Сохранено"; sb.classList.add("done"); }
+  if (storeSaved(list)) { renderSaved(); if (quiet) return; const sb = $("saveBtn"); if (sb) { sb.textContent = "✓ Сохранено"; sb.classList.add("done"); }
     $("notes").insertAdjacentHTML("afterbegin", '<div class="note">Изменения сохранены в «Мои карты».</div>'); }
 }
 function initSheet() {
@@ -2187,7 +2220,8 @@ function validChart(x) {
   const st = x.state;
   if (!st || typeof st !== "object" || !/^\d{4}-\d{2}-\d{2}$/.test(st.date || "")) return false;
   const y = +st.date.slice(0, 4), mo = +st.date.slice(5, 7), d = +st.date.slice(8, 10);
-  if (y < 1800 || y > 2399 || mo < 1 || mo > 12 || d < 1 || d > 31) return false;
+  // дата должна существовать в календаре: 31.02 или 29.02 невисокосного года не проходят
+  if (y < 1800 || y > 2399 || mo < 1 || mo > 12 || d < 1 || d > new Date(Date.UTC(y, mo, 0)).getUTCDate()) return false;
   if (!st.notime && !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(st.time || "")) return false;
   const sel = st.selected, manual = st.lat || st.lon;
   if (manual ? !(numIn(st.lat, 90) && numIn(st.lon, 180)) : !(sel && typeof sel === "object")) return false;
@@ -2213,62 +2247,82 @@ function initBackup() {
   $("importCharts").addEventListener("change", async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = "";
     if (!f) return;
-    try {
-      const data = JSON.parse(await f.text());
-      if (!data || data.app !== "natal-chart" || !["charts", "backup", "orbs", "texts"].includes(data.kind)) throw new Error("это не файл приложения «Натальная карта»");
-      const parts = [];
-      if (data.kind === "orbs" || data.kind === "backup") {
-        const profs = data.kind === "orbs" ? data.profiles : data.orbs && data.orbs.profiles;
-        if (profs) {
-          for (const [k] of ORB_PROFILES) if (profs[k] !== undefined && !validProfile(profs[k])) throw new Error(`набор орбисов «${k}» повреждён`);
-        }
-      }
-      if (data.charts !== undefined && (!Array.isArray(data.charts) || !data.charts.every(validChart))) throw new Error("список карт повреждён");
-      // Карты добавляются к уже сохранённым, одинаковые не повторяются
-      if (Array.isArray(data.charts)) {
-        const list = loadSaved(), keys = new Set(list.map(x => stateKey(x.state)));
-        let added = 0;
-        let upd = 0;
-        for (const x of data.charts) {
-          const k = stateKey(x.state);
-          if (keys.has(k)) {   // карта уже есть: переносим заметку, группу и точность, если в файле они новее
-            const old = list.find(y => stateKey(y.state) === k);
-            if (old && (x.group || x.note || x.acc) && (old.upd || 0) <= (x.upd || 0) && (old.group !== x.group || old.note !== x.note || old.acc !== x.acc)) {
-              for (const f of ["group", "note", "acc"]) { if (x[f]) old[f] = x[f]; }
-              old.upd = Date.now(); upd++;
-            }
-            continue;
-          }
-          keys.add(k); list.push({ ...x, id: String(Date.now()) + "-" + added }); added++;
-        }
-        if (!storeSaved(list)) throw new Error("этот браузер не даёт хранить данные");
-        parts.push(`карт добавлено: ${added}` + (data.charts.length > added ? `, уже были: ${data.charts.length - added}` : "") + (upd ? `, обновлены заметки и группы: ${upd}` : ""));
-        renderSaved();
-      }
-      const profs = data.kind === "orbs" ? data.profiles : data.orbs && data.orbs.profiles;
-      if (profs && data.kind !== "charts") {
-        for (const [k] of ORB_PROFILES) if (profs[k] !== undefined) ORBSET[k] = profs[k];
-        storeOrbSet(); if (MODE === "settings") renderOrbs();
-        parts.push("орбисы восстановлены");
-      }
-      if ((data.kind === "backup" || data.kind === "texts") && data.texts && typeof data.texts === "object") {
-        const r = txImportMap(data.texts);
-        parts.push(`толкований новых: ${r.add}, обновлено: ${r.upd}`);
-      }
-      if (data.kind === "backup" && data.settings) {
-        try {
-          if (data.settings.theme === "dark" || data.settings.theme === "light") { lsSet(THEME_KEY, data.settings.theme); applyTheme(data.settings.theme); }
-          if (typeof data.settings.showMinor === "boolean") { lsSet("natal-show-minor", data.settings.showMinor ? "1" : "0"); SHOW_MINOR = data.settings.showMinor; }
-          const keys = data.settings.keys && typeof data.settings.keys === "object" ? data.settings.keys : {};
-          for (const k of PREF_KEYS) if (typeof keys[k] === "string" && keys[k].length < 2000) lsSet(k, keys[k]);
-          applyPrefs();
-        } catch (e2) {}
-        parts.push("настройки восстановлены");
-      }
-      if (RERENDER) RERENDER();
-      savedMsg(parts.length ? parts.join("; ") + "." : "В файле нет данных для загрузки.");
-    } catch (err) { savedMsg(`Не удалось загрузить файл: ${err.message}. Ничего не изменено.`, true); }
+    let res;
+    try { res = importPrepare(JSON.parse(await f.text())); importCommit(res.writes); }
+    catch (err) { savedMsg(`Не удалось загрузить файл: ${err.message}. Ничего не изменено.`, true); return; }
+    importApply(res);
+    savedMsg(res.parts.length ? res.parts.join("; ") + "." : "В файле нет данных для загрузки.");
   });
+}
+// Импорт в три шага (P1.3): 1) проверить файл и подготовить новые значения в памяти, ничего не меняя;
+// 2) записать все ключи разом, при любой ошибке вернуть прежние значения; 3) только после записи обновить экран.
+function importPrepare(data) {
+  if (!data || data.app !== "natal-chart" || !["charts", "backup", "orbs", "texts"].includes(data.kind)) throw new Error("это не файл приложения «Натальная карта»");
+  const writes = [], parts = [], res = { writes, parts };
+  const profs = data.kind === "orbs" ? data.profiles : data.kind === "backup" ? data.orbs && data.orbs.profiles : null;
+  if (profs) for (const [k] of ORB_PROFILES) if (profs[k] !== undefined && !validProfile(profs[k])) throw new Error(`набор орбисов «${k}» повреждён`);
+  if (data.charts !== undefined && (!Array.isArray(data.charts) || !data.charts.every(validChart))) throw new Error("список карт повреждён");
+  // Карты добавляются к уже сохранённым, одинаковые не повторяются
+  if (Array.isArray(data.charts)) {
+    const list = loadSaved().map(x => ({ ...x })), keys = new Set(list.map(x => stateKey(x.state)));
+    let added = 0, upd = 0;
+    for (const x of data.charts) {
+      const k = stateKey(x.state);
+      if (keys.has(k)) {   // карта уже есть: переносим заметку, группу и точность, если в файле они новее
+        const old = list.find(y => stateKey(y.state) === k);
+        if (old && (x.group || x.note || x.acc) && (old.upd || 0) <= (x.upd || 0) && (old.group !== x.group || old.note !== x.note || old.acc !== x.acc)) {
+          for (const f of ["group", "note", "acc"]) { if (x[f]) old[f] = x[f]; }
+          old.upd = Date.now(); upd++;
+        }
+        continue;
+      }
+      keys.add(k); list.push({ ...x, id: String(Date.now()) + "-" + added }); added++;
+    }
+    writes.push([STORE_KEY, JSON.stringify(list)]); res.charts = true;
+    parts.push(`карт добавлено: ${added}` + (data.charts.length > added ? `, уже были: ${data.charts.length - added}` : "") + (upd ? `, обновлены заметки и группы: ${upd}` : ""));
+  }
+  if (profs) {
+    const next = { ...ORBSET };
+    for (const [k] of ORB_PROFILES) if (profs[k] !== undefined) next[k] = profs[k];
+    writes.push([ORB_STORE, JSON.stringify({ version: 4, rule: ORB_RULE, profiles: next })]); res.orbs = true;
+    parts.push("орбисы восстановлены");
+  }
+  if ((data.kind === "backup" || data.kind === "texts") && data.texts && typeof data.texts === "object") {
+    const r = txImportPrepare(data.texts);
+    if (r.touched.length) { writes.push([TX_STORE, JSON.stringify({ version: 1, texts: r.next })]); res.tx = r; }
+    parts.push(`толкований новых: ${r.add}, обновлено: ${r.upd}`);
+  }
+  if (data.kind === "backup" && data.settings && typeof data.settings === "object") {
+    const st = data.settings, kv = new Map();
+    if (st.theme === "dark" || st.theme === "light") kv.set(THEME_KEY, st.theme);
+    if (typeof st.showMinor === "boolean") kv.set("natal-show-minor", st.showMinor ? "1" : "0");
+    const keys = st.keys && typeof st.keys === "object" ? st.keys : {};
+    for (const k of PREF_KEYS) if (typeof keys[k] === "string" && keys[k].length < 2000) kv.set(k, keys[k]);
+    for (const w of kv) writes.push(w);
+    res.settings = true; parts.push("настройки восстановлены");
+  }
+  return res;
+}
+function importCommit(writes) {
+  const done = [];
+  try {
+    for (const [k, v] of writes) { const old = lsGet(k); lsSet(k, v); done.push([k, old]); }
+  } catch (e) {
+    for (const [k, old] of done.reverse()) {   // откат: прежнее значение в памяти, в браузере и в облаке
+      if (old === null) { delete MEM[k]; try { localStorage.removeItem(k); } catch (e2) {} }
+      else { MEM[k] = old; try { localStorage.setItem(k, old); } catch (e2) {} }
+      CLOUD.dirty.add(k);
+    }
+    cloudSchedule();
+    throw e;
+  }
+}
+function importApply(res) {
+  if (res.tx) txImportApply(res.tx);
+  if (res.orbs) { ORBSET = loadOrbSet(); if (MODE === "settings") renderOrbs(); }
+  if (res.settings) applyPrefs();
+  if (res.charts) renderSaved();
+  if (RERENDER) RERENDER();
 }
 
 /* ---------- Толкования (Т-25): только собственные тексты Kate ----------
@@ -2713,24 +2767,27 @@ function txPasteApply(replace) {
   $("txPaste").hidden = true; $("txPasteBtn").hidden = false; $("txPasteArea").value = ""; $("txPastePrev").innerHTML = "";
   txMsg(`Сохранено: новых текстов ${add}, заменено ${upd}.`);
 }
-function txImportMap(texts) {   // { ключ: {t, u} или строка } → сколько добавлено и обновлено
+function txImportPrepare(texts) {   // { ключ: {t, u} или строка } → новые толкования (TX не меняется) и сколько добавлено и обновлено
   let add = 0, upd = 0, bad = 0;
-  const touched = [];
+  const touched = [], next = { ...TX };
   for (const [k, v] of Object.entries(texts)) {
     const t = typeof v === "string" ? v : v && typeof v.t === "string" ? v.t : null;
     if (t === null || !txValidKey(k)) { bad++; continue; }
     if (!t.trim()) {   // пустой текст в файле — это удалённый стартовый текст
       const u0 = typeof v === "object" && v.u ? v.u : 0;
-      if (SEED[k] && (!TX[k] || (TX[k].u || 0) < u0)) { TX[k] = { t: "", u: u0 || Date.now() }; touched.push(k); }
+      if (SEED[k] && (!next[k] || (next[k].u || 0) < u0)) { next[k] = { t: "", u: u0 || Date.now() }; touched.push(k); }
       continue;
     }
     const u = typeof v === "object" && v.u ? v.u : Date.now();
-    if (!TX[k] || !TX[k].t) { TX[k] = { t, u: Math.max(u, (TX[k] && TX[k].u || 0) + 1) }; add++; touched.push(k); }
-    else if (TX[k].t !== t && (TX[k].u || 0) <= u) { TX[k] = { t, u }; upd++; touched.push(k); }
+    if (!next[k] || !next[k].t) { next[k] = { t, u: Math.max(u, (next[k] && next[k].u || 0) + 1) }; add++; touched.push(k); }
+    else if (next[k].t !== t && (next[k].u || 0) <= u) { next[k] = { t, u }; upd++; touched.push(k); }
   }
-  if (touched.length && !txStore(touched)) throw new Error("этот браузер не даёт хранить данные");
+  return { next, touched, add, upd, bad };
+}
+function txImportApply(r) {   // после записи в хранилище: толкования в памяти и пометки для облака
+  TX = r.next;
+  for (const k of r.touched) TX_DIRTY.add(txBucket(k));
   txRefresh();
-  return { add, upd, bad };
 }
 function txExportObj() {   // в файл пишем и подпись позиции, чтобы его можно было читать глазами
   const texts = {};
@@ -2787,6 +2844,10 @@ function initTexts() {
 
 /* ---------- Транзиты и синастрия ---------- */
 let MODE = "natal", LAST_FC = "transit";
+// P1.4: поколение экрана растёт при каждой смене раздела. Асинхронный расчёт берёт «билет» в начале
+// и после каждого await проверяет его: результат старого экрана не попадает в новый.
+let VIEW = 0;
+function viewTicket(m = MODE) { const v = VIEW; return () => VIEW === v && MODE === m; }
 if (["transit", "solar", "lunar", "direction", "sky"].includes(lsGet("natal-last-fc"))) LAST_FC = lsGet("natal-last-fc");
 const TR = { baseId: null, utc: Date.now(), tz: null, note: "" };
 const SYN = { a: null, b: null, tmp: [], side: "b" };
@@ -2833,7 +2894,7 @@ function refreshPickers() {
 const VIEW_TITLES = { natal: "Натальная карта", transit: "Транзиты", solar: "Соляр", lunar: "Лунар", direction: "Дирекции", sky: "Небо сейчас", synastry: "Синастрия", charts: "Мои карты", settings: "Настройки" };
 const FORECAST = new Set(["transit", "solar", "lunar", "direction", "sky"]);
 function setMode(m) {
-  MODE = m;
+  MODE = m; VIEW++;
   for (const b of $("modes").querySelectorAll("button")) b.setAttribute("aria-selected", String(b.dataset.mode === m || (b.dataset.mode === "transit" && FORECAST.has(m))));
   for (const b of $("fcSeg").querySelectorAll("button")) b.setAttribute("aria-selected", String(b.dataset.fc === m));
   if (FORECAST.has(m) && LAST_FC !== m) { LAST_FC = m; try { lsSet("natal-last-fc", m); } catch (e) {} }
@@ -2993,13 +3054,13 @@ let TR_RUN = 0;
 async function runTransit() {
   const item = loadSaved().find(x => x.id === TR.baseId);
   if (!item) { $("out").innerHTML = ""; RERENDER = null; return; }
-  const run = ++TR_RUN;
+  const run = ++TR_RUN, live = viewTicket();
   try {
     const natal = await chartFromState(item.state);
     const jd = TR.utc / 864e5 + 2440587.5;
     if (jd < 2378496.5 || jd > 2597641.5) throw new Error("Поддерживаются даты с 1800 по 2399 год.");
     await ensureEph([jd - 1.5, jd + 1.5]);
-    if (run !== TR_RUN) return;
+    if (run !== TR_RUN || !live()) return;
     const trPl = planetPositions(jd).map(p => ({ ...p, name: p.name }));
     syncTrInputs();
     const w = wallOf(TR.utc, TR.tz), H = !!natal.houses;
@@ -3013,16 +3074,16 @@ async function runTransit() {
       keep: (p, side) => side === "inner" || !TR_SLOW || SLOW.has(p.key) });
     draw();
     $("notes").innerHTML = TR.note ? `<div class="note">${esc(TR.note)}</div>` : "";
-  } catch (err) { if (run === TR_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+  } catch (err) { if (run === TR_RUN && live()) { $("out").innerHTML = ""; showError(err.message); } }
 }
 let SYN_RUN = 0;
 async function runSynastry() {
   const list = synEntries(), ia = list.find(x => x.id === SYN.a), ib = list.find(x => x.id === SYN.b);
   if (!ia || !ib) { $("out").innerHTML = ""; RERENDER = null; $("notes").innerHTML = ""; if (!$("synForm").hidden) return; if (list.length < 2) synFormOpen(ia ? "b" : "a"); return; }
-  const run = ++SYN_RUN;
+  const run = ++SYN_RUN, live = viewTicket();
   try {
     const A = await chartFromState(ia.state), B = await chartFromState(ib.state);
-    if (run !== SYN_RUN) return;
+    if (run !== SYN_RUN || !live()) return;
     const la = ia.title, lb = ib.title;
     const aPts = [...A.planets, ...angPts(A)], bPts = [...B.planets, ...angPts(B)];
     const head = `<span><b>Синастрия</b></span><span>A (внутри): ${chartLine(A)}</span><span class="tag-out">B (снаружи): ${chartLine(B)}</span>`;
@@ -3046,7 +3107,7 @@ async function runSynastry() {
         return `<div class="note ask"><p>${txt}</p><div class="btns">${alt}<button type="button" class="pill" data-synedit="${esc(x.id)}" data-side="${side}">Изменить</button></div></div>`;
       }).join("") +
       ((tmp => tmp.length ? `<div class="note ask"><p>Введено вручную, в «Мои карты» пока не сохранено:</p><div class="btns">${tmp.map(x => `<button type="button" class="pill save" data-synsave="${esc(x.id)}">＋ ${esc(x.title)}</button>`).join("")}</div></div>` : "")([ia, ib].filter((x, i, arr) => x.tmp && arr.indexOf(x) === i)));
-  } catch (err) { if (run === SYN_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+  } catch (err) { if (run === SYN_RUN && live()) { $("out").innerHTML = ""; showError(err.message); } }
 }
 /* ---------- Синастрия: данные, введённые вручную ---------- */
 // Введённые данные живут до закрытия страницы; их можно сохранить в «Мои карты»
@@ -3090,8 +3151,10 @@ async function synFormGo() {
   const st = { name: $("sfName").value.trim(), date, time: notime ? "" : time, notime, oldstyle: false, place: SF_SEL.label, selected: SF_SEL,
     lat: "", lon: "", tz: SF_SEL.tz, tzTouched: false, off: "", fold: 0, strict: false };
   $("sfGo").disabled = true;
+  const live = viewTicket();
   try {
     const ch = await chartFromState(st);
+    if (!live()) return;   // пока считали, ушли из «Синастрии»
     const item = { id: "tmp-" + Date.now(), tmp: true, title: ch.name || `${pad(ch.w.d)}.${pad(ch.w.mo)}.${ch.w.y}`, sub: chartSub(ch), state: st };
     const old = SYN.edit && SYN.tmp.findIndex(x => x.id === SYN.edit);
     if (SYN.edit && old >= 0) { SYN.tmp[old] = item; for (const k of ["a", "b"]) if (SYN[k] === SYN.edit) SYN[k] = item.id; }
@@ -3101,7 +3164,7 @@ async function synFormGo() {
     if (SYN.side === "a" && !SYN.b) SYN.b = (synEntries().find(x => x.id !== item.id) || {}).id || null;
     synFormClose(); refreshPickers(); runSynastry();
     if (!SYN.a || !SYN.b) synFormOpen(SYN.a ? "b" : "a");
-  } catch (err) { msg(err.message); }
+  } catch (err) { if (live()) msg(err.message); }
   finally { $("sfGo").disabled = false; }
 }
 function synSaveTmp(id) {
@@ -3173,7 +3236,7 @@ async function runReturn() {
   $("retHint").textContent = auto === "last" ? "Подставлено последнее место. Нажмите, чтобы изменить." : auto === "birth" ? "Подставлено место рождения. Нажмите, чтобы изменить." : "";
   if (pl && document.activeElement !== $("retPlace")) { $("retPlace").value = pl.label; $("retChosen").textContent = retPlaceLine(pl); }
   if (!pl) { $("out").innerHTML = ""; RERENDER = null; $("notes").innerHTML = '<div class="note">Укажите город, где человек находится в день возврата: дома считаются для этого места.</div>'; return; }
-  const run = ++RET_RUN;
+  const run = ++RET_RUN, live = viewTicket();
   try {
     const natal = await chartFromState(item.state);
     const target = natal.planets.find(p => p.key === RET_BODY[kind]).lon;
@@ -3184,7 +3247,7 @@ async function runReturn() {
       ? await solveReturn(kind, target, natal.jd + RET_PERIOD[kind])
       : await lastReturn(kind, target, Math.min(nowJd, 2597600));
     if (jd < 2378497 || jd > 2597640) throw new Error("Поддерживаются даты с 1800 по 2399 год.");
-    if (run !== RET_RUN) return;
+    if (run !== RET_RUN || !live()) return;
     RET.jd = jd;
     const utc = Math.round((jd - 2440587.5) * 864e5);
     const off = offsetMs(utc, pl.tz), dd = new Date(utc + off);
@@ -3216,17 +3279,21 @@ async function runReturn() {
       draw();
       $("notes").innerHTML = notes;
     }
-  } catch (err) { if (run === RET_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+  } catch (err) { if (run === RET_RUN && live()) { $("out").innerHTML = ""; showError(err.message); } }
 }
 async function stepReturn(dir) {
   const item = loadSaved().find(x => x.id === RET.baseId);
   if (!item || RET.jd === null) return;
   if (dir === 0) { RET.jd = null; return runReturn(); }
+  const live = viewTicket(), kind = MODE;
   const natal = await chartFromState(item.state);
-  const target = natal.planets.find(p => p.key === RET_BODY[MODE]).lon;
-  const g = RET.jd + dir * RET_PERIOD[MODE];
+  if (!live()) return;
+  const target = natal.planets.find(p => p.key === RET_BODY[kind]).lon;
+  const g = RET.jd + dir * RET_PERIOD[kind];
   if (g < 2378500 || g > 2597600) { showError("Поддерживаются даты с 1800 по 2399 год."); return; }
-  RET.jd = await solveReturn(MODE, target, g);
+  const jd = await solveReturn(kind, target, g);
+  if (!live()) return;   // соляр сменили на лунар или ушли из раздела: найденная дата к нему не относится
+  RET.jd = jd;
   runReturn();
 }
 function initReturns() {
@@ -3339,11 +3406,11 @@ function phaseName(e) {
 }
 let SKY_RUN = 0;
 async function runSky() {
-  const run = ++SKY_RUN, nowMs = Date.now(), now = jdOf(nowMs);
+  const run = ++SKY_RUN, live = viewTicket(), nowMs = Date.now(), now = jdOf(nowMs);
   RERENDER = null; $("notes").innerHTML = "";
   try {
     await ensureEph([now - 300, now + 400]);
-    if (run !== SKY_RUN) return;
+    if (run !== SKY_RUN || !live()) return;
     const pl = planetPositions(now), gl = glyphOf, nm = k => BODIES.find(b => b[0] === k)[1];
     const e = elong(now), prevNew = phaseTime(0, now, -1), nextNew = phaseTime(0, now, 1), nextFull = phaseTime(180, now, 1);
     const q1 = phaseTime(90, now, 1), q3 = phaseTime(270, now, 1);
@@ -3370,7 +3437,7 @@ async function runSky() {
       <div><h2>Планеты сейчас</h2><div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th><th class="dg"></th></tr></thead><tbody>${rows}</tbody></table></div></div>
       <div><h2>Ретроградные периоды (3 месяца)</h2>${rp.length ? `<div class="tbl"><table><thead><tr><th class="pg"></th><th>Планета</th><th>Начало</th><th>Конец</th><th></th></tr></thead><tbody>${rpRows}</tbody></table></div>` : '<p class="hint">В ближайшие 3 месяца ретроградных планет нет.</p>'}</div>
     </div></div>`;
-  } catch (err) { if (run === SKY_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+  } catch (err) { if (run === SKY_RUN && live()) { $("out").innerHTML = ""; showError(err.message); } }
 }
 /* Лунные сутки как в ZET: 1-е — от новолуния до первого восхода Луны, дальше от восхода до восхода.
    Широта Луны и расстояние (для параллакса) — главные члены теории Луны по Meeus, гл. 47 (ошибка широты ~0.01°). */
@@ -3463,7 +3530,7 @@ async function runDirection() {
   if (!item) { $("out").innerHTML = ""; RERENDER = null; return; }
   if (!DIR.date) DIR.date = todayStr();
   $("dirDate").value = DIR.date;
-  const run = ++DIR_RUN;
+  const run = ++DIR_RUN, live = viewTicket();
   try {
     const natal = await chartFromState(item.state);
     const [y, mo, d] = DIR.date.split("-").map(Number);
@@ -3471,7 +3538,7 @@ async function runDirection() {
     if (tj < natal.jd) throw new Error("Дата дирекций раньше даты рождения: выберите дату после рождения.");
     const sun = natal.planets.find(p => p.key === "sun").lon;
     const arc = await solarArc(natal.jd, sun, tj);
-    if (run !== DIR_RUN) return;
+    if (run !== DIR_RUN || !live()) return;
     // дирекционная дуга движется вперёд ~1° в год: speed > 0 для «сходящийся / расходящийся»
     const dirPl = natal.planets.map(p => ({ ...p, lon: norm(p.lon + arc), speed: 1 }));
     const H = !!natal.houses, withH = H && DIR_HOUSES;
@@ -3495,7 +3562,7 @@ async function runDirection() {
       } });
     draw();
     $("notes").innerHTML = natal.unknown ? '<div class="note">У натальной карты неизвестно время рождения: дирекции ASC и MC не строятся.</div>' : "";
-  } catch (err) { if (run === DIR_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+  } catch (err) { if (run === DIR_RUN && live()) { $("out").innerHTML = ""; showError(err.message); } }
 }
 function setForecastBase(id) {
   TR.baseId = RET.baseId = DIR.baseId = id; RET.jd = null;
@@ -3834,8 +3901,10 @@ async function openStart() {
   $("name").value = ""; $("date").value = "1990-06-15"; $("time").value = "14:30";
   $("place").value = "Москва"; setSelected({ lat: 55.752, lon: 37.6178, tz: "Europe/Moscow", cc: "RU" }, "Москва");
   syncOldStyle();
-  try { await ensureEph([2448057.9]); renderChart(buildChart(readInput()), true); }
+  const live = viewTicket("natal");
+  try { await ensureEph([2448057.9]); const ch = buildChart(readInput()); if (live()) renderChart(ch, true); else if (!LAST_CHART) LAST_CHART = { ch, example: true }; }
   catch (err) {
+    if (!live()) return;
     $("out").innerHTML = `<div class="note err">${esc(err.message)} <button type="button" class="btn" id="bootRetry">Повторить</button></div>`;
     $("bootRetry").addEventListener("click", () => { $("out").innerHTML = '<div class="loading">Загружаю таблицы эфемерид…</div>'; openStart(); });
   }
