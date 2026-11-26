@@ -643,6 +643,13 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
   <section class="pane" id="trPane" hidden>
     <p class="hint pick-empty">Сначала сохраните натальную карту в «Мои карты»: транзиты строятся к ней.</p>
     <div class="pickrow full"><span class="pr-l">К карте: <b class="base-lbl"></b></span><label class="pill pick-btn">Сменить<select id="trBase" class="pick overlay-select" aria-label="Натальная карта"></select></label></div>
+    <div class="f full place">
+      <label class="f"><span>Место для домов транзитов</span>
+        <input id="trPlace" placeholder="Начните вводить город" role="combobox" aria-expanded="false" aria-controls="trSugg" aria-autocomplete="list"></label>
+      <ul class="sugg" id="trSugg" role="listbox" hidden></ul>
+      <div class="chosen" id="trChosen"></div>
+      <p class="hint" id="trHint"></p>
+    </div>
     <div class="stepper full">
       <button type="button" class="stp" data-tmove="-1" aria-label="Назад">‹</button>
       <div class="stp-mid stp-dt"><input id="trDate" type="date" min="1800-01-01" max="2399-12-31" aria-label="Дата"><input id="trTime" type="time" aria-label="Время"><select id="trTz" aria-label="Часовой пояс"></select></div>
@@ -707,7 +714,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "68";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "69";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -2813,7 +2820,8 @@ function initTexts() {
 /* ---------- Транзиты и синастрия ---------- */
 let MODE = "natal", LAST_FC = "transit";
 if (["transit", "solar", "lunar", "direction", "sky"].includes(lsGet("natal-last-fc"))) LAST_FC = lsGet("natal-last-fc");
-const TR = { baseId: null, utc: Date.now(), tz: null, note: "" };
+const TR = { baseId: null, utc: Date.now(), tz: null, note: "", place: null };
+try { TR.place = JSON.parse(lsGet("natal-tr-place") || "null"); } catch (e) {}
 const SYN = { a: null, b: null, tmp: [], side: "b" };
 const synEntries = () => [...loadSaved(), ...SYN.tmp];
 function wallOf(utcMs, tz) {
@@ -2922,8 +2930,9 @@ function crossGrid(outerPts, innerPts, aspects) {
   }
   return h + "</tbody></table>";
 }
-function posRows(planets, houseFn) {
-  return planets.map(p => { const hs = houseFn(p); return `<tr><td class="g pg">${glyphHtml(p)}</td><td class="nm">${esc(p.name)}</td><td class="n">${degSign(p)}</td>${hs !== undefined ? `<td class="n hs">${typeof hs === "number" ? ROMAN[hs - 1] : hs}</td>` : ""}</tr>`; }).join("");
+function posRows(planets, houseFn, houseFn2) {
+  const cell = hs => hs !== undefined ? `<td class="n hs">${typeof hs === "number" ? ROMAN[hs - 1] : hs}</td>` : "";
+  return planets.map(p => `<tr><td class="g pg">${glyphHtml(p)}</td><td class="nm">${esc(p.name)}</td><td class="n">${degSign(p)}</td>${cell(houseFn(p))}${houseFn2 ? cell(houseFn2(p)) : ""}</tr>`).join("");
 }
 // Общая отрисовка двойного круга: inner — карта с домами, outerPts — точки второй карты
 /* ---------- Распределение и аспектные фигуры (Т-21) ---------- */
@@ -3028,16 +3037,25 @@ async function runTransit() {
     const trPl = planetPositions(jd).map(p => ({ ...p, name: p.name }));
     syncTrInputs();
     const w = wallOf(TR.utc, TR.tz), H = !!natal.houses;
+    // место для домов транзитов: выбранное, иначе место соляра/лунара, иначе место рождения
+    const pl = TR.place || RET.place || birthPlace(item);
+    $("trHint").textContent = TR.place ? "" : pl ? (RET.place ? "Подставлено место из соляра/лунара. Нажмите, чтобы изменить." : "Подставлено место рождения. Нажмите, чтобы изменить.") : "";
+    if (pl && document.activeElement !== $("trPlace")) { $("trPlace").value = pl.label; $("trChosen").textContent = retPlaceLine(pl); }
+    const trH = pl ? calcHouses(jd, pl.lat, pl.lon) : null;
+    if (trH) for (const p of trPl) p.house = houseOf(trH.cusps, p.lon);
+    const trAng = trH ? angPts({ houses: trH }).map(p => ({ ...p, speed: 1 })) : [];
+    const trPts = [...trPl, ...trAng];
     const innerPts = [...natal.planets.map(p => ({ ...p, speed: 0 })), ...angPts(natal)];
-    const head = `<span><b>Транзиты</b> на ${fmtWall(w)} · ${esc(TR.tz)} · <span class="tag">${fmtOffset(offsetMs(TR.utc, TR.tz))}</span></span><span>к карте ${chartLine(natal)}</span>`;
-    const tables = `<div><h2>Транзитные планеты</h2><div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th>${H ? "<th>Дом натала</th>" : ""}</tr></thead><tbody>${posRows(trPl, p => H ? houseOf(natal.houses.cusps, p.lon) : undefined)}</tbody></table></div></div>`;
-    const draw = () => renderPair({ head, inner: natal, outerPlanets: trPl, outerPts: trPl, innerPts, aspects: findCrossAspects(innerPts, trPl, "transit", true),
-      outerLabel: "Тр.", innerLabel: "Нат.", tables, rerender: draw,
+    const head = `<span><b>Транзиты</b> на ${fmtWall(w)} · ${esc(TR.tz)} · <span class="tag">${fmtOffset(offsetMs(TR.utc, TR.tz))}</span></span><span>к карте ${chartLine(natal)}</span>` +
+      (trH ? `<span>Дома транзитов: <b>${esc(pl.label)}</b> · ${trH.system} · ASC <span class="tag">${fmtDeg(trH.asc)}</span> · MC <span class="tag">${fmtDeg(trH.mc)}</span></span>` : "");
+    const tables = `<div><h2>Транзитные планеты</h2><div class="tbl"><table><thead><tr><th class="pg"></th><th>Тело</th><th>Положение</th>${H ? "<th>Дом натала</th>" : ""}${trH ? "<th>Дом транзита</th>" : ""}</tr></thead><tbody>${posRows(trPl, p => H ? houseOf(natal.houses.cusps, p.lon) : undefined, trH ? p => p.house : undefined)}</tbody></table></div></div>`;
+    const draw = () => renderPair({ head, inner: natal, outerPlanets: SHOW_ANG ? trPts : trPl, outerPts: trPts, innerPts, aspects: findCrossAspects(innerPts, trPts, "transit", true),
+      outerLabel: "Тр.", innerLabel: "Нат.", tables, rerender: draw, outerHouses: trH,
       extra: toggleBtn("slowBtn", TR_SLOW, `Медленные ♃–${PLUTO_ICON}`),
       bindExtra: () => bindToggle("slowBtn", () => TR_SLOW, v => TR_SLOW = v, "natal-tr-slow", draw),
       keep: (p, side) => side === "inner" || !TR_SLOW || SLOW.has(p.key) });
     draw();
-    $("notes").innerHTML = TR.note ? `<div class="note">${esc(TR.note)}</div>` : "";
+    $("notes").innerHTML = [TR.note, ...(trH ? trH.warnings : [])].filter(Boolean).map(x => `<div class="note">${esc(x)}</div>`).join("");
   } catch (err) { if (run === TR_RUN) { $("out").innerHTML = ""; showError(err.message); } }
 }
 let SYN_RUN = 0;
@@ -3190,11 +3208,7 @@ async function runReturn() {
   if (!item) { $("out").innerHTML = ""; RERENDER = null; return; }
   // место: последнее выбранное, иначе место рождения; предупреждение — только если места нет совсем
   let pl = RET.place, auto = RET.place ? "last" : null;
-  if (!pl) {
-    const st = item.state, sel = st.selected;
-    if (sel && Number.isFinite(sel.lat)) { pl = { label: sel.label, lat: sel.lat, lon: sel.lon, tz: sel.tz, cc: sel.cc }; auto = "birth"; }
-    else if (st.lat && st.lon && st.tz) { pl = { label: st.place || "место рождения", lat: +st.lat, lon: +st.lon, tz: st.tz, cc: "" }; auto = "birth"; }
-  }
+  if (!pl) { pl = birthPlace(item); if (pl) auto = "birth"; }
   $("retHint").textContent = auto === "last" ? "Подставлено последнее место. Нажмите, чтобы изменить." : auto === "birth" ? "Подставлено место рождения. Нажмите, чтобы изменить." : "";
   if (pl && document.activeElement !== $("retPlace")) { $("retPlace").value = pl.label; $("retChosen").textContent = retPlaceLine(pl); }
   if (!pl) { $("out").innerHTML = ""; RERENDER = null; $("notes").innerHTML = '<div class="note">Укажите город, где человек находится в день возврата: дома считаются для этого места.</div>'; return; }
@@ -3257,9 +3271,13 @@ async function stepReturn(dir) {
 function initReturns() {
   $("retBase").addEventListener("change", e => setForecastBase(e.target.value));
   $("retSteps").addEventListener("click", e => { const b = e.target.closest("[data-ret]"); if (b) stepReturn(+b.dataset.ret); });
-  const inp = $("retPlace"), ul = $("retSugg");
+  if (RET.place) { $("retPlace").value = RET.place.label; $("retChosen").textContent = retPlaceLine(RET.place); }
+  bindPlaceInput("retPlace", "retSugg", "retChosen", pl => { RET.place = pl; try { lsSet("natal-ret-place", JSON.stringify(pl)); } catch (e) {} runReturn(); });
+}
+// Поле «город» с подсказками (соляр, лунар, транзиты): onPick получает { label, lat, lon, tz, cc }
+function bindPlaceInput(inpId, ulId, chosenId, onPick) {
+  const inp = $(inpId), ul = $(ulId);
   let items = [], before = null;
-  if (RET.place) { inp.value = RET.place.label; $("retChosen").textContent = retPlaceLine(RET.place); }
   const show = (list, q) => {
     items = list;
     if (!list.length) { ul.hidden = true; inp.setAttribute("aria-expanded", "false"); return; }
@@ -3272,12 +3290,17 @@ function initReturns() {
   ul.addEventListener("mousedown", e => e.preventDefault());
   ul.addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
-    const c = items[+b.dataset.i], label = cityLabel(c, inp.value);
-    RET.place = { label, lat: c.lat, lon: c.lon, tz: c.tz, cc: c.cc };
-    try { lsSet("natal-ret-place", JSON.stringify(RET.place)); } catch (e) {}
-    inp.value = label; before = null; $("retChosen").textContent = retPlaceLine(RET.place); show([], "");
-    inp.blur(); runReturn();
+    const c = items[+b.dataset.i], label = cityLabel(c, inp.value), pl = { label, lat: c.lat, lon: c.lon, tz: c.tz, cc: c.cc };
+    inp.value = label; before = null; $(chosenId).textContent = retPlaceLine(pl); show([], "");
+    inp.blur(); onPick(pl);
   });
+}
+// Место рождения из сохранённой карты (подставляется, пока место не выбрано)
+function birthPlace(item) {
+  const st = item.state, sel = st.selected;
+  if (sel && Number.isFinite(sel.lat)) return { label: sel.label, lat: sel.lat, lon: sel.lon, tz: sel.tz, cc: sel.cc };
+  if (st.lat && st.lon && st.tz) return { label: st.place || "место рождения", lat: +st.lat, lon: +st.lon, tz: st.tz, cc: "" };
+  return null;
 }
 /* ---------- Небо сейчас (Т-23): планеты, фазы Луны, Луна без курса, ретроградные периоды ---------- */
 // Время показывается в поясе телефона. Луна без курса — от последнего точного мажорного аспекта
@@ -3806,6 +3829,7 @@ function initModes() {
   if (![...$("trTz").options].some(o => o.value === devTz)) $("trTz").insertAdjacentHTML("afterbegin", `<option>${esc(devTz)}</option>`);
   syncTrInputs();
   $("trBase").addEventListener("change", e => setForecastBase(e.target.value));
+  bindPlaceInput("trPlace", "trSugg", "trChosen", pl => { TR.place = pl; TR.tz = pl.tz; try { lsSet("natal-tr-place", JSON.stringify(pl)); } catch (e) {} runTransit(); });
   $("favPick").addEventListener("change", e => { const it = loadSaved().find(x => x.id === e.target.value); e.target.value = ""; if (it) openSaved(it, false); });
   TR.unit = "day";
   $("trUnit").addEventListener("click", e => { const b = e.target.closest("[data-unit]"); if (!b) return; TR.unit = b.dataset.unit; for (const x of $("trUnit").children) x.setAttribute("aria-selected", String(x === b)); });
