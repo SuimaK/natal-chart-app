@@ -718,7 +718,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "69";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "70";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -3117,7 +3117,7 @@ async function runTransit() {
       keep: (p, side) => side === "inner" || !TR_SLOW || SLOW.has(p.key) });
     draw();
     $("notes").innerHTML = [TR.note, ...(trH ? trH.warnings : [])].filter(Boolean).map(x => `<div class="note">${esc(x)}</div>`).join("");
-  } catch (err) { if (run === TR_RUN) { $("out").innerHTML = ""; showError(err.message); } }
+  } catch (err) { if (run === TR_RUN && live()) { $("out").innerHTML = ""; showError(err.message); } }
 }
 let SYN_RUN = 0;
 async function runSynastry() {
