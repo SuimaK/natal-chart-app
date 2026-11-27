@@ -473,6 +473,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 .w-ocusp.w-oaxis { stroke-width: 1.8; stroke-dasharray: 5 3; }
 .w-ocl { fill: var(--accent); font: 500 10.5px var(--f-num); paint-order: stroke; stroke: var(--surface); stroke-width: 2.5px; stroke-linejoin: round; }
 .w-ocl.ax { font-weight: 700; }
+.w-ohn { fill: var(--accent); font: 700 10.5px var(--f-body); paint-order: stroke; stroke: var(--surface); stroke-width: 2.5px; stroke-linejoin: round; }
 .w-ocl tspan.gl { font: 12px var(--f-glyph); }
 .ln-ocusp { background: repeating-linear-gradient(90deg, var(--accent) 0 4px, transparent 4px 7px); }
 </style>
@@ -718,7 +719,7 @@ svg[aria-label="Плутон"] .pluto { fill: none; stroke: currentColor; stroke
 
 <script>
 "use strict";
-const APP_VERSION = "70";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
+const APP_VERSION = "71";   // номер выпуска: показывается в «Настройках», увеличивать при каждом выпуске
 /* ---------- Хранение: память браузера + облачная база Claude ----------
    localStorage у опубликованной страницы может пропасть при обновлении версии,
    поэтому карты и настройки дублируются в личное хранилище пользователя (capability db):
@@ -1578,6 +1579,11 @@ function renderSvg(ch, size = 600, opt = {}) {
     };
     const oIsAx = i => oEQ ? i % 6 === 0 : i % 3 === 0;
     oc.forEach((c, i) => oAx(c, oIsAx(i), `${opt.outerLabel || ""} ${oIsAx(i) ? AX[i] + ", к" : "к"}успид ${i + 1}-го дома`.trim()));
+    // Номера домов второй карты: у внешнего края кольца, посередине дома
+    oc.forEach((c, i) => {
+      const n = pt(c + norm(oc[(i + 1) % 12] - c) / 2, R_SIGN - 8 * s);
+      o.push(`<text x="${f(n[0])}" y="${f(n[1])}" class="w-ohn" text-anchor="middle" dominant-baseline="central"><title>${`${opt.outerLabel || ""} ${ROMAN[i]} дом`.trim()}</title>${ROMAN[i]}</text>`);
+    });
     if (oEQ) for (const [lon, name] of [[OH.mc, "MC"], [norm(OH.mc + 180), "IC"]]) oAx(lon, true, `${opt.outerLabel || ""} ${name}`.trim());
   }
   for (const a of aspects) {
